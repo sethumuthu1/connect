@@ -1,0 +1,10 @@
+:root{
+  --bg:#0f1724;
+  --card:#0b1220;
+  --muted:#9aa4b2;
+  --accent:#3b82f6;
+  --text:#e6eef6;
+}
+html,body,#root{height:100%;margin:0;padding:0;font-family:Inter,Segoe UI,Roboto,system-ui,-apple-system;}
+body{background:linear-gradient(180deg,#061022 0%, #071429 100%); color:var(--text);}
+*{box-sizing:border-box;}
