@@ -13,38 +13,48 @@ export default function VideoChat() {
   const socketRef = useRef(null);
   const partnerRef = useRef(null);
 
-  const [status, setStatus] = useState('idle'); // idle, waiting, matched, connecting, in-call
+  const [status, setStatus] = useState('idle'); // idle, waiting, matched, in-call
   const [muted, setMuted] = useState(false);
   const [cameraOn, setCameraOn] = useState(true);
+  const [stream, setStream] = useState(null);
+  const [autoMode, setAutoMode] = useState(false); // auto reconnect mode
 
+  // Clean up when component unmounts
   useEffect(() => {
     return () => cleanup();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Start immediately: camera + socket
   const start = async () => {
-    setStatus('connecting');
-    socketRef.current = io(SIGNAL_SERVER);
+    setAutoMode(true);
+    setStatus('starting');
+    await prepareLocalStream(); // camera ON immediately
+    connectSocket(); // then connect to signaling
+  };
+
+  const connectSocket = () => {
+    socketRef.current = io(SIGNAL_SERVER, { transports: ['websocket'] });
 
     socketRef.current.on('connect', () => {
+      console.log('Connected to signaling server');
       socketRef.current.emit('join');
     });
 
-    socketRef.current.on('waiting', () => setStatus('waiting'));
+    socketRef.current.on('waiting', () => {
+      console.log('Waiting for partner...');
+      setStatus('waiting');
+    });
 
-    socketRef.current.on('matched', async ({ partnerId }) => {
+    socketRef.current.on('matched', ({ partnerId }) => {
+      console.log('Matched with', partnerId);
       partnerRef.current = partnerId;
-      setStatus('matched');
-      await prepareLocalStream();
       createPeer(true);
+      setStatus('matched');
     });
 
     socketRef.current.on('signal', async ({ from, data }) => {
       partnerRef.current = from;
-      if (!pcRef.current) {
-        await prepareLocalStream();
-        createPeer(false);
-      }
+      if (!pcRef.current) createPeer(false);
 
       if (data?.type === 'offer') {
         await pcRef.current.setRemoteDescription(new RTCSessionDescription(data));
@@ -57,23 +67,35 @@ export default function VideoChat() {
         try {
           await pcRef.current.addIceCandidate(data);
         } catch (err) {
-          console.warn('Failed to add ICE candidate', err);
+          console.warn('Error adding ICE candidate', err);
         }
       }
     });
 
-    socketRef.current.on('disconnect', () => cleanup());
+    socketRef.current.on('partner-left', () => {
+      console.log('Partner left.');
+      endCall(false);
+      if (autoMode) {
+        console.log('Rejoining queue automatically...');
+        socketRef.current.emit('join');
+      }
+    });
+
+    socketRef.current.on('disconnect', () => {
+      console.log('Socket disconnected');
+      cleanup();
+    });
   };
 
   const prepareLocalStream = async () => {
-    if (localVideoRef.current && localVideoRef.current.srcObject) return;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      localVideoRef.current.srcObject = stream;
+      const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideoRef.current.srcObject = media;
       localVideoRef.current.muted = true;
+      setStream(media);
     } catch (err) {
-      console.error('getUserMedia error', err);
       alert('Please allow camera and microphone access.');
+      console.error('getUserMedia error', err);
       setStatus('idle');
     }
   };
@@ -81,81 +103,79 @@ export default function VideoChat() {
   const createPeer = (isInitiator) => {
     pcRef.current = new RTCPeerConnection(ICE_CONFIG);
 
-    const localStream = localVideoRef.current?.srcObject;
-    if (localStream) {
-      localStream.getTracks().forEach((t) => pcRef.current.addTrack(t, localStream));
-    }
+    stream?.getTracks().forEach((t) => pcRef.current.addTrack(t, stream));
 
-    pcRef.current.ontrack = (event) => {
-      remoteVideoRef.current.srcObject = event.streams[0];
+    pcRef.current.ontrack = (ev) => {
+      remoteVideoRef.current.srcObject = ev.streams[0];
       setStatus('in-call');
     };
 
-    pcRef.current.onicecandidate = (ev) => {
-      if (ev.candidate && partnerRef.current) {
-        socketRef.current.emit('signal', { to: partnerRef.current, data: ev.candidate });
+    pcRef.current.onicecandidate = (event) => {
+      if (event.candidate && partnerRef.current) {
+        socketRef.current.emit('signal', { to: partnerRef.current, data: event.candidate });
       }
     };
 
     pcRef.current.onconnectionstatechange = () => {
-      const s = pcRef.current.connectionState;
-      if (s === 'disconnected' || s === 'failed' || s === 'closed') {
-        endCall();
+      if (['disconnected', 'failed', 'closed'].includes(pcRef.current.connectionState)) {
+        endCall(false);
       }
     };
 
     if (isInitiator) {
       pcRef.current.createOffer().then(async (offer) => {
         await pcRef.current.setLocalDescription(offer);
-        if (partnerRef.current) {
-          socketRef.current.emit('signal', { to: partnerRef.current, data: pcRef.current.localDescription });
-        }
-      }).catch(console.error);
+        socketRef.current.emit('signal', { to: partnerRef.current, data: pcRef.current.localDescription });
+      });
     }
   };
 
-  const endCall = () => {
-    if (socketRef.current) socketRef.current.emit('leave');
-    cleanup();
-    setStatus('idle');
+  const endCall = (manual = true) => {
+    if (manual && socketRef.current) socketRef.current.emit('leave');
+    if (pcRef.current) {
+      pcRef.current.close();
+      pcRef.current = null;
+    }
+    if (remoteVideoRef.current?.srcObject) {
+      remoteVideoRef.current.srcObject.getTracks().forEach((t) => t.stop());
+      remoteVideoRef.current.srcObject = null;
+    }
+    partnerRef.current = null;
+    setStatus(autoMode && !manual ? 'waiting' : 'idle');
   };
 
   const cleanup = () => {
     try {
-      if (pcRef.current) {
-        pcRef.current.close();
-        pcRef.current = null;
-      }
+      endCall(true);
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
       }
-      if (localVideoRef.current?.srcObject) {
-        localVideoRef.current.srcObject.getTracks().forEach((t) => t.stop());
-        localVideoRef.current.srcObject = null;
+      if (stream) {
+        stream.getTracks().forEach((t) => t.stop());
+        setStream(null);
       }
-      if (remoteVideoRef.current?.srcObject) {
-        remoteVideoRef.current.srcObject.getTracks().forEach((t) => t.stop());
-        remoteVideoRef.current.srcObject = null;
-      }
-      partnerRef.current = null;
-    } catch (err) {
-      console.warn('cleanup error', err);
+    } catch (e) {
+      console.warn('cleanup error', e);
     }
   };
 
   const toggleMute = () => {
-    const stream = localVideoRef.current?.srcObject;
     if (!stream) return;
     stream.getAudioTracks().forEach((t) => (t.enabled = !t.enabled));
     setMuted((m) => !m);
   };
 
   const toggleCamera = () => {
-    const stream = localVideoRef.current?.srcObject;
     if (!stream) return;
     stream.getVideoTracks().forEach((t) => (t.enabled = !t.enabled));
     setCameraOn((c) => !c);
+  };
+
+  const stopAuto = () => {
+    setAutoMode(false);
+    endCall(true);
+    cleanup();
   };
 
   return (
@@ -165,7 +185,6 @@ export default function VideoChat() {
           <video ref={localVideoRef} autoPlay playsInline className="local" />
           <div className="label">You</div>
         </div>
-
         <div className="video-wrap">
           <video ref={remoteVideoRef} autoPlay playsInline className="remote" />
           <div className="label">Stranger</div>
@@ -175,7 +194,7 @@ export default function VideoChat() {
       <Controls
         status={status}
         onStart={start}
-        onEnd={endCall}
+        onEnd={stopAuto}
         onToggleMute={toggleMute}
         onToggleCamera={toggleCamera}
         muted={muted}
@@ -183,7 +202,7 @@ export default function VideoChat() {
       />
 
       <div className="status">
-        <strong>Status:</strong> {status}
+        <strong>Status:</strong> {status} {autoMode && '(auto)'}
       </div>
     </div>
   );
