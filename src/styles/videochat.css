@@ -184,6 +184,12 @@
     background: #000 !important;
     overflow: hidden !important;
     flex-shrink: 0 !important;
+    padding: 0;
+        border-radius: 0;
+  }
+
+  .joingy-layout{
+    gap: 0 !important;
   }
 
   .video-box.bottom-box {
@@ -226,9 +232,8 @@
   .video-overlay {
     position: absolute !important;
     bottom: 14px !important;
-    right: 14px !important;
+    /* right: 14px !important; */
     display: flex !important;
-    flex-direction: column !important;
     gap: 10px !important;
     z-index: 10 !important;
   }
@@ -249,7 +254,7 @@
 
   /* Chat container uses remaining height */
   .chat-side {
-    flex: 1 !important;
+    flex: 0.8 !important;
     width: 100% !important;
     background: #fff !important;
     border-top-left-radius: 18px !important;
