@@ -1,15 +1,17 @@
-/* Container layout */
+/* ===========================
+   DESKTOP VIEW (default)
+=========================== */
 .joingy-layout {
   display: flex;
   width: 100%;
-  height: calc(100vh - 140px); /* leave space for header/footer if you have them */
+  height: calc(100vh - 140px);
   gap: 12px;
   padding: 16px;
   box-sizing: border-box;
   background: #f6f7f9;
 }
 
-/* LEFT: videos column (35%) */
+/* LEFT: videos */
 .video-side {
   width: 25%;
   display: flex;
@@ -22,47 +24,33 @@
   box-sizing: border-box;
 }
 
-/* Each video box (same size) */
 .video-box {
   width: 100%;
   background: #000;
   border-radius: 8px;
   position: relative;
   overflow: hidden;
-  flex: 1; /* makes top and bottom equal height */
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.video-box.top-box {
-  margin-bottom: 0;
-}
-
-.video-box.bottom-box {
-  margin-top: 0;
-}
-
-/* video element fills the box */
 .video-el {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-/* label bottom-left */
 .video-label {
   position: absolute;
   left: 10px;
   bottom: 8px;
   font-size: 13px;
   color: #fff;
-  text-shadow: 0 2px 6px rgba(0,0,0,0.6);
-  padding: 2px 6px;
-  border-radius: 4px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
 }
 
-/* overlay icons (on your video) bottom-right */
 .video-overlay {
   position: absolute;
   right: 8px;
@@ -80,15 +68,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.15);
   color: white;
   cursor: pointer;
   font-size: 14px;
-  transition: background .15s ease;
+  transition: background 0.15s ease;
 }
-.icon-btn:hover { background: rgba(255,255,255,0.28); }
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
 
-/* RIGHT: chat (65%) */
+/* RIGHT: chat */
 .chat-side {
   width: 75%;
   display: flex;
@@ -96,14 +86,7 @@
   background: #fff;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 6px rgba(12,24,40,0.04);
-}
-
-.chat-header {
-  background: #007bff;
-  color: #fff;
-  padding: 12px 14px;
-  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(12, 24, 40, 0.04);
 }
 
 .chat-body {
@@ -117,13 +100,9 @@
 .chat-placeholder {
   color: #666;
   font-style: italic;
+  text-align: center;
 }
 
-.chat-message {
-  margin-bottom: 8px;
-}
-
-/* Footer: start/leave | input | send */
 .chat-footer {
   display: flex;
   gap: 10px;
@@ -172,28 +151,194 @@
   font-weight: 700;
 }
 
-/* disabled states */
-.send-btn:disabled,
-.start-leave:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+/* ===========================
+   MOBILE VIEW (≤768px)
+=========================== */
+@media (max-width: 768px) {
+  header,
+  footer,
+  .app-header,
+  .app-footer {
+    display: none !important;
+  }
 
-/* responsive */
-@media (max-width: 900px) {
+  /* Fullscreen layout */
   .joingy-layout {
-    flex-direction: column;
-    height: auto;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: 100vh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    gap: 0 !important;
+    background: #000 !important;
+    overflow: hidden !important;
+    position: relative !important;
   }
-  .video-side, .chat-side {
-    width: 100%;
+
+  /* Stranger video top (full screen area) */
+  .video-side {
+    position: relative !important;
+    width: 100% !important;
+    height: 45vh !important;
+    background: #000 !important;
+    overflow: hidden !important;
   }
-  .video-box {
-    height: 260px; /* fixed heights so mobile looks OK */
+
+  .video-box.bottom-box {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    position: relative !important;
   }
-  .video-overlay { right: 6px; bottom: 6px; }
+
+  .video-el {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  /* Your small local video bottom-left */
+  .video-box.top-box {
+    position: absolute !important;
+    bottom: 12px !important;
+    left: 12px !important;
+    width: 28% !important;
+    aspect-ratio: 4 / 3 !important;
+    border: 2px solid #fff !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    z-index: 5 !important;
+    background: #000 !important;
+  }
+
+  .video-label {
+    position: absolute !important;
+    bottom: 36px !important;
+    left: 8px !important;
+    color: #fff !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+  }
+
+  /* 🔥 Mic & Video icons now on Stranger screen (bottom-right global) */
+  .video-overlay {
+    position: absolute !important;
+    bottom: 12px !important;
+    right: 12px !important;
+    display: flex !important;
+    flex-direction: row-reverse !important;
+    gap: 10px !important;
+    z-index: 10 !important;
+  }
+
+  .icon-btn {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+    color: #fff !important;
+    font-size: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+  }
+
+  /* Chat section */
+  .chat-side {
+    width: 100% !important;
+    height: 55vh !important;
+    background: #fff !important;
+    border-top-left-radius: 18px !important;
+    border-top-right-radius: 18px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .chat-body {
+    flex: 1 !important;
+    padding: 12px 14px !important;
+    overflow-y: auto !important;
+    background: #fff !important;
+    color: #222 !important;
+  }
+
+  .chat-placeholder {
+    font-style: italic !important;
+    color: #777 !important;
+    text-align: center !important;
+  }
+
+  /* Chat footer — stays inside white area, never overflows */
+  .chat-footer {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    padding: 10px !important;
+    border-top: 1px solid #eee !important;
+    background: #fff !important;
+    position: relative !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .start-leave {
+    min-width: 80px !important;
+    font-size: 15px !important;
+    padding: 10px 12px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    border: none !important;
+    flex-shrink: 0 !important;
+  }
+
+  .start-leave.start {
+    background: #007bff !important;
+    color: #fff !important;
+  }
+
+  .start-leave.leave {
+    background: #e03b3b !important;
+    color: #fff !important;
+  }
+
+  .chat-footer input {
+    flex: 1 !important;
+    padding: 10px !important;
+    font-size: 15px !important;
+    border-radius: 6px !important;
+    border: 1px solid #ccc !important;
+    outline: none !important;
+    min-width: 0 !important;
+  }
+
+  .send-btn {
+    flex-shrink: 0 !important;
+    padding: 10px 12px !important;
+    border: none !important;
+    border-radius: 6px !important;
+    background: #0095ff !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    cursor: pointer !important;
+  }
+
+  body,
+  html {
+    overflow: hidden !important;
+    height: 100% !important;
+    background: #000 !important;
+  }
 }
-
-
-
-
