@@ -1,55 +1,74 @@
-// components/VideoChat.jsx
+// connect-frontend/src/components/VideoChat.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import io from 'socket.io-client';
 import Controls from './Controls';
 
 const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER || 'http://localhost:4000';
-const ICE_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+// Reliable STUN + TURN (works globally)
+const ICE_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    {
+      urls: 'turn:relay1.expressturn.com:3478',
+      username: 'efNqprEDw7XdoqOybT',
+      credential: 'VqvK6fYtTEqKktA7'
+    }
+  ]
+};
 
 export default function VideoChat() {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
-  const pcRef = useRef(null);
   const socketRef = useRef(null);
+  const pcRef = useRef(null);
   const partnerRef = useRef(null);
-
-  const [status, setStatus] = useState('idle'); // idle, waiting, matched, in-call
+  const [stream, setStream] = useState(null);
+  const [status, setStatus] = useState('idle');
   const [muted, setMuted] = useState(false);
   const [cameraOn, setCameraOn] = useState(true);
-  const [stream, setStream] = useState(null);
-  const [autoMode, setAutoMode] = useState(false); // auto reconnect mode
+  const [autoMode, setAutoMode] = useState(false);
 
-  // Clean up when component unmounts
-  useEffect(() => {
-    return () => cleanup();
-  }, []);
+  useEffect(() => () => cleanup(), []);
 
-  // Start immediately: camera + socket
   const start = async () => {
     setAutoMode(true);
-    setStatus('starting');
-    await prepareLocalStream(); // camera ON immediately
-    connectSocket(); // then connect to signaling
+    await initCamera(); // start camera immediately
+    initSocket();
   };
 
-  const connectSocket = () => {
+  const initCamera = async () => {
+    try {
+      const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideoRef.current.srcObject = media;
+      localVideoRef.current.muted = true;
+      setStream(media);
+      console.log('Camera started');
+    } catch (err) {
+      alert('Please allow camera and microphone.');
+      console.error(err);
+    }
+  };
+
+  const initSocket = () => {
     socketRef.current = io(SIGNAL_SERVER, { transports: ['websocket'] });
+    setStatus('connecting');
 
     socketRef.current.on('connect', () => {
-      console.log('Connected to signaling server');
+      console.log('Connected to signaling');
       socketRef.current.emit('join');
     });
 
     socketRef.current.on('waiting', () => {
-      console.log('Waiting for partner...');
+      console.log('Waiting...');
       setStatus('waiting');
     });
 
-    socketRef.current.on('matched', ({ partnerId }) => {
+    socketRef.current.on('matched', async ({ partnerId }) => {
       console.log('Matched with', partnerId);
       partnerRef.current = partnerId;
-      createPeer(true);
       setStatus('matched');
+      createPeer(true);
     });
 
     socketRef.current.on('signal', async ({ from, data }) => {
@@ -67,18 +86,15 @@ export default function VideoChat() {
         try {
           await pcRef.current.addIceCandidate(data);
         } catch (err) {
-          console.warn('Error adding ICE candidate', err);
+          console.warn('ICE add error', err);
         }
       }
     });
 
     socketRef.current.on('partner-left', () => {
-      console.log('Partner left.');
+      console.log('Partner left — requeueing...');
       endCall(false);
-      if (autoMode) {
-        console.log('Rejoining queue automatically...');
-        socketRef.current.emit('join');
-      }
+      if (autoMode) socketRef.current.emit('join');
     });
 
     socketRef.current.on('disconnect', () => {
@@ -87,46 +103,43 @@ export default function VideoChat() {
     });
   };
 
-  const prepareLocalStream = async () => {
-    try {
-      const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      localVideoRef.current.srcObject = media;
-      localVideoRef.current.muted = true;
-      setStream(media);
-    } catch (err) {
-      alert('Please allow camera and microphone access.');
-      console.error('getUserMedia error', err);
-      setStatus('idle');
-    }
-  };
-
-  const createPeer = (isInitiator) => {
+  const createPeer = (initiator) => {
     pcRef.current = new RTCPeerConnection(ICE_CONFIG);
 
-    stream?.getTracks().forEach((t) => pcRef.current.addTrack(t, stream));
+    // Add local tracks
+    if (stream) {
+      stream.getTracks().forEach((track) => pcRef.current.addTrack(track, stream));
+    }
 
-    pcRef.current.ontrack = (ev) => {
-      remoteVideoRef.current.srcObject = ev.streams[0];
+    pcRef.current.ontrack = (e) => {
+      console.log('Got remote stream');
+      remoteVideoRef.current.srcObject = e.streams[0];
       setStatus('in-call');
     };
 
-    pcRef.current.onicecandidate = (event) => {
-      if (event.candidate && partnerRef.current) {
-        socketRef.current.emit('signal', { to: partnerRef.current, data: event.candidate });
+    pcRef.current.onicecandidate = (e) => {
+      if (e.candidate && partnerRef.current) {
+        socketRef.current.emit('signal', { to: partnerRef.current, data: e.candidate });
       }
     };
 
+    pcRef.current.oniceconnectionstatechange = () => {
+      console.log('ICE:', pcRef.current.iceConnectionState);
+    };
     pcRef.current.onconnectionstatechange = () => {
-      if (['disconnected', 'failed', 'closed'].includes(pcRef.current.connectionState)) {
+      console.log('PC:', pcRef.current.connectionState);
+      if (['failed', 'disconnected', 'closed'].includes(pcRef.current.connectionState)) {
         endCall(false);
       }
     };
 
-    if (isInitiator) {
-      pcRef.current.createOffer().then(async (offer) => {
-        await pcRef.current.setLocalDescription(offer);
-        socketRef.current.emit('signal', { to: partnerRef.current, data: pcRef.current.localDescription });
-      });
+    if (initiator) {
+      pcRef.current.createOffer()
+        .then(async (offer) => {
+          await pcRef.current.setLocalDescription(offer);
+          socketRef.current.emit('signal', { to: partnerRef.current, data: pcRef.current.localDescription });
+        })
+        .catch(console.error);
     }
   };
 
@@ -155,8 +168,8 @@ export default function VideoChat() {
         stream.getTracks().forEach((t) => t.stop());
         setStream(null);
       }
-    } catch (e) {
-      console.warn('cleanup error', e);
+    } catch (err) {
+      console.warn('Cleanup error', err);
     }
   };
 
