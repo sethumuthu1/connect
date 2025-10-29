@@ -9,14 +9,24 @@ const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER || 'https://connect-bac
 // ✅ STUN + TURN (forced TCP so it works on any network)
 const ICE_CONFIG = {
   iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
     {
-      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
+      urls: [
+        "stun:in-turn.metered.ca:80",
+        "stun:in-turn.metered.ca:443"
+      ]
+    },
+    {
+      urls: [
+        "turn:in-turn.metered.ca:80",
+        "turn:in-turn.metered.ca:443?transport=tcp",
+        "turns:in-turn.metered.ca:443?transport=tcp"
+      ],
+      username: "27e83d60009c7e83cfa8821d",
+      credential: "4ntuAcbtBYDd8i5M"
     }
   ]
 };
+
 
 export default function VideoChat() {
   const localVideoRef = useRef(null);
