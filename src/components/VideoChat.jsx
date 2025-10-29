@@ -91,12 +91,25 @@ export default function VideoChat() {
     });
 
     socketRef.current.on('matched', async ({ partnerId, initiator }) => {
-      console.log('✅ Matched with', partnerId, 'initiator=', initiator);
-      partnerRef.current = partnerId;
-      setStatus('matched');
-      await ensureCamera();
-      await createPeer(initiator);
-    });
+  console.log('✅ Matched with', partnerId, 'initiator=', initiator);
+  partnerRef.current = partnerId;
+  setStatus('matched');
+
+  // Ensure camera is ready before proceeding
+  if (!stream) {
+    console.log("⏳ Waiting for local stream...");
+    const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localVideoRef.current.srcObject = media;
+    localVideoRef.current.muted = true;
+    setStream(media);
+    console.log("🎥 Local stream initialized");
+  } else {
+    console.log("🎥 Stream already available");
+  }
+
+  await createPeer(!!initiator);
+});
+
 
     socketRef.current.on('signal', async ({ from, data }) => {
       partnerRef.current = from;
