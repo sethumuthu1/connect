@@ -44,6 +44,7 @@ export default function VideoChat() {
   const pcRef = useRef(null);
   const partnerRef = useRef(null);
   const [stream, setStream] = useState(null);
+  const streamRef = useRef(null); // 👈 ADD THIS
   const [status, setStatus] = useState('idle');
   const [muted, setMuted] = useState(false);
   const [cameraOn, setCameraOn] = useState(true);
@@ -62,17 +63,19 @@ export default function VideoChat() {
   };
 
   const initCamera = async () => {
-    try {
-      const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      localVideoRef.current.srcObject = media;
-      localVideoRef.current.muted = true;
-      setStream(media);
-      console.log('🎥 Camera ready');
-    } catch (err) {
-      alert('Please allow camera & microphone access.');
-      console.error(err);
-    }
-  };
+  try {
+    const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localVideoRef.current.srcObject = media;
+    localVideoRef.current.muted = true;
+    setStream(media);
+    streamRef.current = media; // 👈 ensure immediate availability
+    console.log('🎥 Camera ready');
+  } catch (err) {
+    alert('Please allow camera & microphone access.');
+    console.error(err);
+  }
+};
+
 
   const initSocket = () => {
     if (socketRef.current) return;
@@ -157,43 +160,37 @@ export default function VideoChat() {
 
   // ──────────────────────────────────────────────
   const createPeer = async (isInitiator) => {
-    pcRef.current = new RTCPeerConnection(ICE_CONFIG);
-    console.log('🌐 Creating RTCPeerConnection, initiator=', isInitiator);
+  const localStream = streamRef.current; // 👈 use ref, not state
+  if (!localStream) {
+    console.error('🚫 No local stream available before creating peer!');
+    return;
+  }
 
-    // add local tracks
-    stream.getTracks().forEach((track) => pcRef.current.addTrack(track, stream));
+  pcRef.current = new RTCPeerConnection(ICE_CONFIG);
+  console.log('🌐 Creating RTCPeerConnection, initiator=', isInitiator);
 
-    pcRef.current.ontrack = (e) => {
-      console.log('🎬 Got remote stream');
-      remoteVideoRef.current.srcObject = e.streams[0];
-      setStatus('in-call');
-    };
+  // ✅ add tracks from the ref
+  localStream.getTracks().forEach((track) => pcRef.current.addTrack(track, localStream));
 
-    pcRef.current.onicecandidate = (e) => {
-      if (e.candidate && socketRef.current && partnerRef.current) {
-        socketRef.current.emit('signal', { to: partnerRef.current, data: e.candidate });
-      }
-    };
+  pcRef.current.ontrack = (e) => {
+    console.log('🎬 Got remote stream');
+    remoteVideoRef.current.srcObject = e.streams[0];
+    setStatus('in-call');
+  };
 
-    pcRef.current.oniceconnectionstatechange = () => {
-      console.log('ICE state =', pcRef.current.iceConnectionState);
-    };
-
-    pcRef.current.onconnectionstatechange = () => {
-      console.log('Connection state =', pcRef.current.connectionState);
-      if (['disconnected', 'failed', 'closed'].includes(pcRef.current.connectionState)) {
-        endCall(false);
-      }
-    };
-
-    // Only initiator sends offer
-    if (isInitiator) {
-      const offer = await pcRef.current.createOffer();
-      await pcRef.current.setLocalDescription(offer);
-      socketRef.current.emit('signal', { to: partnerRef.current, data: offer });
-      console.log('📤 Sent offer');
+  pcRef.current.onicecandidate = (e) => {
+    if (e.candidate && socketRef.current && partnerRef.current) {
+      socketRef.current.emit('signal', { to: partnerRef.current, data: e.candidate });
     }
   };
+
+  if (isInitiator) {
+    const offer = await pcRef.current.createOffer();
+    await pcRef.current.setLocalDescription(offer);
+    socketRef.current.emit('signal', { to: partnerRef.current, data: offer });
+    console.log('📤 Sent offer');
+  }
+};
 
   // ──────────────────────────────────────────────
   const endCall = (manual = true) => {
