@@ -10,21 +10,30 @@ const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER || 'https://connect-bac
 const ICE_CONFIG = {
   iceServers: [
     {
-      urls: [
-        "stun:in-turn.metered.ca:80",
-        "stun:in-turn.metered.ca:443"
-      ]
+      urls: "stun:stun.relay.metered.ca:80",
     },
     {
-      urls: [
-        "turn:in-turn.metered.ca:80",
-        "turn:in-turn.metered.ca:443?transport=tcp",
-        "turns:in-turn.metered.ca:443?transport=tcp"
-      ],
+      urls: "turn:in.relay.metered.ca:80",
       username: "27e83d60009c7e83cfa8821d",
-      credential: "4ntuAcbtBYDd8i5M"
-    }
-  ]
+      credential: "4ntuAcbtBYDd8i5M",
+    },
+    {
+      urls: "turn:in.relay.metered.ca:80?transport=tcp",
+      username: "27e83d60009c7e83cfa8821d",
+      credential: "4ntuAcbtBYDd8i5M",
+    },
+    {
+      urls: "turn:in.relay.metered.ca:443",
+      username: "27e83d60009c7e83cfa8821d",
+      credential: "4ntuAcbtBYDd8i5M",
+    },
+    {
+      urls: "turns:in.relay.metered.ca:443?transport=tcp",
+      username: "27e83d60009c7e83cfa8821d",
+      credential: "4ntuAcbtBYDd8i5M",
+    },
+  ],
+  iceTransportPolicy: "all", // ✅ ensures fallback to TURN when STUN fails
 };
 
 
