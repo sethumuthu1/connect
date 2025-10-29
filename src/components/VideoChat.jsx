@@ -50,6 +50,13 @@ export default function VideoChat() {
     }
   };
 
+  const ensureCameraReady = async () => {
+  if (!stream) {
+    await initCamera();
+  }
+};
+
+
   const initSocket = () => {
     socketRef.current = io(SIGNAL_SERVER, { transports: ['websocket'] });
     setStatus('connecting');
@@ -65,11 +72,17 @@ export default function VideoChat() {
     });
 
     socketRef.current.on('matched', async ({ partnerId }) => {
-      console.log('Matched with', partnerId);
-      partnerRef.current = partnerId;
-      setStatus('matched');
-      createPeer(true);
-    });
+  console.log('Matched with', partnerId);
+  partnerRef.current = partnerId;
+  setStatus('matched');
+
+  // Only the user whose socket ID is higher becomes the initiator
+  const isInitiator = socketRef.current.id > partnerId;
+  await ensureCameraReady();
+createPeer(isInitiator);
+
+});
+
 
     socketRef.current.on('signal', async ({ from, data }) => {
       partnerRef.current = from;
