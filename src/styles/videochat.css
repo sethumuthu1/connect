@@ -254,17 +254,21 @@
 
   /* Chat container uses remaining height */
   .chat-side {
-    flex: 0.8 !important;
-    width: 100% !important;
-    background: #fff !important;
-    border-top-left-radius: 18px !important;
-    border-top-right-radius: 18px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
-    box-sizing: border-box !important;
-    overflow: hidden !important;
-  }
+  width: 100% !important;
+  flex: 1 1 auto !important; /* allows it to grow or shrink naturally */
+  min-height: 45dvh !important; /* ensures enough space on small screens */
+  max-height: 65dvh !important; /* prevents overflow on tall screens */
+  background: #fff !important;
+  border-top-left-radius: 18px !important;
+  border-top-right-radius: 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  transition: height 0.3s ease !important;
+}
+
 
   /* Scrollable chat area */
   .chat-body {
