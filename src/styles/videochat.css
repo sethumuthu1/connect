@@ -1,0 +1,199 @@
+/* Container layout */
+.joingy-layout {
+  display: flex;
+  width: 100%;
+  height: calc(100vh - 140px); /* leave space for header/footer if you have them */
+  gap: 12px;
+  padding: 16px;
+  box-sizing: border-box;
+  background: #f6f7f9;
+}
+
+/* LEFT: videos column (35%) */
+.video-side {
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(12, 24, 40, 0.04);
+  box-sizing: border-box;
+}
+
+/* Each video box (same size) */
+.video-box {
+  width: 100%;
+  background: #000;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  flex: 1; /* makes top and bottom equal height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-box.top-box {
+  margin-bottom: 0;
+}
+
+.video-box.bottom-box {
+  margin-top: 0;
+}
+
+/* video element fills the box */
+.video-el {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* label bottom-left */
+.video-label {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  font-size: 13px;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* overlay icons (on your video) bottom-right */
+.video-overlay {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  gap: 8px;
+  z-index: 5;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background .15s ease;
+}
+.icon-btn:hover { background: rgba(255,255,255,0.28); }
+
+/* RIGHT: chat (65%) */
+.chat-side {
+  width: 75%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(12,24,40,0.04);
+}
+
+.chat-header {
+  background: #007bff;
+  color: #fff;
+  padding: 12px 14px;
+  font-weight: 600;
+}
+
+.chat-body {
+  flex: 1;
+  padding: 14px;
+  overflow-y: auto;
+  background: #ffffff;
+  color: #222;
+}
+
+.chat-placeholder {
+  color: #666;
+  font-style: italic;
+}
+
+.chat-message {
+  margin-bottom: 8px;
+}
+
+/* Footer: start/leave | input | send */
+.chat-footer {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border-top: 1px solid #eee;
+  background: #fafafa;
+}
+
+.start-leave {
+  min-width: 92px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+}
+.start-leave.start {
+  background: #007bff;
+  color: #fff;
+}
+.start-leave.leave {
+  background: #e03b3b;
+  color: #fff;
+}
+
+.chat-footer input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  outline: none;
+  font-size: 14px;
+}
+
+.send-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #0095ff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+/* disabled states */
+.send-btn:disabled,
+.start-leave:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* responsive */
+@media (max-width: 900px) {
+  .joingy-layout {
+    flex-direction: column;
+    height: auto;
+  }
+  .video-side, .chat-side {
+    width: 100%;
+  }
+  .video-box {
+    height: 260px; /* fixed heights so mobile looks OK */
+  }
+  .video-overlay { right: 6px; bottom: 6px; }
+}
+
+
+
+
