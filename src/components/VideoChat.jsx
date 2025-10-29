@@ -10,12 +10,23 @@ const ICE_CONFIG = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     {
-      urls: 'turn:relay1.expressturn.com:3478',
-      username: 'efNqprEDw7XdoqOybT',
-      credential: 'VqvK6fYtTEqKktA7'
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turns:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
     }
   ]
 };
+
 
 export default function VideoChat() {
   const localVideoRef = useRef(null);
@@ -51,10 +62,9 @@ export default function VideoChat() {
   };
 
   const ensureCameraReady = async () => {
-  if (!stream) {
-    await initCamera();
-  }
+  if (!stream) await initCamera();
 };
+
 
 
   const initSocket = () => {
@@ -76,12 +86,14 @@ export default function VideoChat() {
   partnerRef.current = partnerId;
   setStatus('matched');
 
-  // Only the user whose socket ID is higher becomes the initiator
-  const isInitiator = socketRef.current.id > partnerId;
   await ensureCameraReady();
-createPeer(isInitiator);
 
+  // ensure only one is initiator
+  const isInitiator = socketRef.current.id > partnerId;
+  console.log('Initiator:', isInitiator);
+  createPeer(isInitiator);
 });
+
 
 
     socketRef.current.on('signal', async ({ from, data }) => {
