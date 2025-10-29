@@ -3,15 +3,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import io from 'socket.io-client';
 import Controls from './Controls';
 
-const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER || 'http://localhost:4000';
+// 🚀 Your deployed backend
+const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER || 'https://connect-backend-x7nc.onrender.com';
 
-// STUN + TURN (openrelay.metered)
+// ✅ STUN + TURN (forced TCP so it works on any network)
 const ICE_CONFIG = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turns:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+    {
+      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
   ]
 };
 
@@ -21,242 +24,186 @@ export default function VideoChat() {
   const socketRef = useRef(null);
   const pcRef = useRef(null);
   const partnerRef = useRef(null);
-  const pendingCandidatesRef = useRef([]); // hold remote candidates until pc exists
   const [stream, setStream] = useState(null);
   const [status, setStatus] = useState('idle');
   const [muted, setMuted] = useState(false);
   const [cameraOn, setCameraOn] = useState(true);
   const [autoMode, setAutoMode] = useState(false);
 
+  // cleanup on unmount
   useEffect(() => {
     return () => cleanup();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ──────────────────────────────────────────────
   const start = async () => {
     setAutoMode(true);
-    setStatus('starting');
     await initCamera();
     initSocket();
   };
 
   const initCamera = async () => {
-    if (stream) return;
     try {
       const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localVideoRef.current.srcObject = media;
       localVideoRef.current.muted = true;
       setStream(media);
-      console.log('Camera ready');
+      console.log('🎥 Camera ready');
     } catch (err) {
-      console.error('Failed to start camera:', err);
-      alert('Allow camera and microphone access and try again.');
-      setStatus('idle');
+      alert('Please allow camera & microphone access.');
+      console.error(err);
     }
   };
 
   const initSocket = () => {
     if (socketRef.current) return;
+
     socketRef.current = io(SIGNAL_SERVER, { transports: ['websocket'] });
     setStatus('connecting');
 
     socketRef.current.on('connect', () => {
-      console.log('Socket connected:', socketRef.current.id);
+      console.log('🔗 Connected to signaling server:', socketRef.current.id);
       socketRef.current.emit('join');
     });
 
     socketRef.current.on('waiting', () => {
-      console.log('Server: waiting');
+      console.log('⌛ Waiting for partner');
       setStatus('waiting');
     });
 
-    // Server will send initiator boolean now
     socketRef.current.on('matched', async ({ partnerId, initiator }) => {
-      console.log('Server: matched', partnerId, 'initiator=', initiator);
+      console.log('✅ Matched with', partnerId, 'initiator=', initiator);
       partnerRef.current = partnerId;
       setStatus('matched');
-      // ensure camera ready
-      if (!stream) await initCamera();
-
-      // create peer and *only* create offer if initiator === true
+      await ensureCamera();
       await createPeer(initiator);
     });
 
     socketRef.current.on('signal', async ({ from, data }) => {
-      console.log('Signal received from', from, data && data.type ? data.type : 'candidate');
       partnerRef.current = from;
 
-      // If we don't have pc yet, create one as non-initiator
       if (!pcRef.current) {
+        await ensureCamera();
         await createPeer(false);
       }
 
-      if (!pcRef.current) {
-        console.warn('Still no peer connection - buffering candidate');
-        pendingCandidatesRef.current.push({ from, data });
-        return;
-      }
-
       if (data?.type === 'offer') {
-        console.log('Applying remote offer');
-        try {
-          await pcRef.current.setRemoteDescription(new RTCSessionDescription(data));
-          const answer = await pcRef.current.createAnswer();
-          await pcRef.current.setLocalDescription(answer);
-          socketRef.current.emit('signal', { to: from, data: pcRef.current.localDescription });
-          console.log('Sent answer');
-        } catch (err) {
-          console.error('Error handling offer:', err);
-        }
+        console.log('📨 Received offer');
+        await pcRef.current.setRemoteDescription(new RTCSessionDescription(data));
+        const answer = await pcRef.current.createAnswer();
+        await pcRef.current.setLocalDescription(answer);
+        socketRef.current.emit('signal', { to: from, data: pcRef.current.localDescription });
+        console.log('📤 Sent answer');
       } else if (data?.type === 'answer') {
-        console.log('Applying remote answer');
-        try {
-          await pcRef.current.setRemoteDescription(new RTCSessionDescription(data));
-        } catch (err) {
-          console.error('Error applying answer:', err);
-        }
-      } else if (data && data.candidate) {
+        console.log('📨 Received answer');
+        await pcRef.current.setRemoteDescription(new RTCSessionDescription(data));
+      } else if (data?.candidate) {
         try {
           await pcRef.current.addIceCandidate(data);
-          console.log('Added remote ICE candidate');
+          console.log('✅ Added ICE candidate');
         } catch (err) {
-          console.warn('Error adding remote ICE candidate:', err);
+          console.warn('⚠️ Failed to add ICE', err);
         }
       }
     });
 
     socketRef.current.on('partner-left', () => {
-      console.log('Server: partner-left');
+      console.log('🚪 Partner left — reconnecting');
       endCall(false);
-      if (autoMode && socketRef.current) {
-        console.log('Rejoining queue automatically');
-        socketRef.current.emit('join');
-      }
+      if (autoMode) socketRef.current.emit('join');
     });
 
     socketRef.current.on('disconnect', () => {
-      console.log('Socket disconnected');
+      console.log('❌ Disconnected from server');
       cleanup();
-    });
-
-    socketRef.current.on('connect_error', (err) => {
-      console.error('Socket connect_error', err);
     });
   };
 
+  const ensureCamera = async () => {
+    if (!stream) await initCamera();
+  };
+
+  // ──────────────────────────────────────────────
   const createPeer = async (isInitiator) => {
-    if (pcRef.current) {
-      console.warn('Peer already exists');
-      return;
-    }
-
-    console.log('Creating RTCPeerConnection, initiator=', isInitiator);
     pcRef.current = new RTCPeerConnection(ICE_CONFIG);
+    console.log('🌐 Creating RTCPeerConnection, initiator=', isInitiator);
 
-    // Add local tracks
-    if (stream) {
-      stream.getTracks().forEach((t) => pcRef.current.addTrack(t, stream));
-      console.log('Local tracks added to peer connection');
-    }
+    // add local tracks
+    stream.getTracks().forEach((track) => pcRef.current.addTrack(track, stream));
 
-    // remote track
-    pcRef.current.ontrack = (ev) => {
-      console.log('ontrack event', ev);
-      remoteVideoRef.current.srcObject = ev.streams[0];
+    pcRef.current.ontrack = (e) => {
+      console.log('🎬 Got remote stream');
+      remoteVideoRef.current.srcObject = e.streams[0];
       setStatus('in-call');
     };
 
-    // ICE candidate -> send to partner
-    pcRef.current.onicecandidate = (ev) => {
-      if (ev.candidate) {
-        console.log('Local ICE candidate generated');
-        if (socketRef.current && partnerRef.current) {
-          socketRef.current.emit('signal', { to: partnerRef.current, data: ev.candidate });
-        }
+    pcRef.current.onicecandidate = (e) => {
+      if (e.candidate && socketRef.current && partnerRef.current) {
+        socketRef.current.emit('signal', { to: partnerRef.current, data: e.candidate });
       }
     };
 
     pcRef.current.oniceconnectionstatechange = () => {
       console.log('ICE state =', pcRef.current.iceConnectionState);
     };
+
     pcRef.current.onconnectionstatechange = () => {
       console.log('Connection state =', pcRef.current.connectionState);
-      const s = pcRef.current.connectionState;
-      if (s === 'connected') {
-        console.log('PeerConnection connected');
-      } else if (['disconnected', 'failed', 'closed'].includes(s)) {
-        console.warn('PeerConnection state is', s);
+      if (['disconnected', 'failed', 'closed'].includes(pcRef.current.connectionState)) {
         endCall(false);
       }
     };
 
-    // If there were pending remote candidates buffered, add them now
-    if (pendingCandidatesRef.current.length > 0) {
-      console.log('Adding buffered candidates', pendingCandidatesRef.current.length);
-      for (const { data } of pendingCandidatesRef.current) {
-        try {
-          await pcRef.current.addIceCandidate(data);
-        } catch (err) {
-          console.warn('Error adding buffered candidate', err);
-        }
-      }
-      pendingCandidatesRef.current = [];
-    }
-
-    // If initiator create offer
+    // Only initiator sends offer
     if (isInitiator) {
-      try {
-        const offer = await pcRef.current.createOffer();
-        await pcRef.current.setLocalDescription(offer);
-        console.log('Sending offer');
-        if (socketRef.current && partnerRef.current) {
-          socketRef.current.emit('signal', { to: partnerRef.current, data: pcRef.current.localDescription });
-        }
-      } catch (err) {
-        console.error('Error creating offer:', err);
-      }
+      const offer = await pcRef.current.createOffer();
+      await pcRef.current.setLocalDescription(offer);
+      socketRef.current.emit('signal', { to: partnerRef.current, data: offer });
+      console.log('📤 Sent offer');
     }
   };
 
+  // ──────────────────────────────────────────────
   const endCall = (manual = true) => {
-    console.log('Ending call manual=', manual);
-    if (manual && socketRef.current) {
-      try { socketRef.current.emit('leave'); } catch {}
-    }
+    console.log('🔚 Ending call, manual =', manual);
+    if (manual && socketRef.current) socketRef.current.emit('leave');
+
     if (pcRef.current) {
-      try { pcRef.current.close(); } catch {}
+      pcRef.current.close();
       pcRef.current = null;
     }
+
     if (remoteVideoRef.current?.srcObject) {
-      try { remoteVideoRef.current.srcObject.getTracks().forEach(t => t.stop()); } catch {}
+      remoteVideoRef.current.srcObject.getTracks().forEach((t) => t.stop());
       remoteVideoRef.current.srcObject = null;
     }
+
     partnerRef.current = null;
     setStatus(autoMode && !manual ? 'waiting' : 'idle');
   };
 
   const cleanup = () => {
-    console.log('Cleanup called');
-    try { endCall(true); } catch {}
+    console.log('🧹 Cleanup');
+    endCall(true);
     if (socketRef.current) {
-      try { socketRef.current.disconnect(); } catch {}
+      socketRef.current.disconnect();
       socketRef.current = null;
     }
     if (stream) {
-      try { stream.getTracks().forEach(t => t.stop()); } catch {}
+      stream.getTracks().forEach((t) => t.stop());
       setStream(null);
     }
   };
 
   const toggleMute = () => {
     if (!stream) return;
-    stream.getAudioTracks().forEach((t) => t.enabled = !t.enabled);
+    stream.getAudioTracks().forEach((t) => (t.enabled = !t.enabled));
     setMuted((m) => !m);
   };
 
   const toggleCamera = () => {
     if (!stream) return;
-    stream.getVideoTracks().forEach((t) => t.enabled = !t.enabled);
+    stream.getVideoTracks().forEach((t) => (t.enabled = !t.enabled));
     setCameraOn((c) => !c);
   };
 
@@ -266,6 +213,7 @@ export default function VideoChat() {
     cleanup();
   };
 
+  // ──────────────────────────────────────────────
   return (
     <div className="video-chat">
       <div className="videos">
@@ -273,8 +221,15 @@ export default function VideoChat() {
           <video ref={localVideoRef} autoPlay playsInline muted className="local" />
           <div className="label">You</div>
         </div>
+
         <div className="video-wrap">
-          <video ref={remoteVideoRef} autoPlay playsInline className="remote" />
+          <video
+            ref={remoteVideoRef}
+            autoPlay
+            playsInline
+            className="remote"
+            onClick={() => remoteVideoRef.current && remoteVideoRef.current.play()}
+          />
           <div className="label">Stranger</div>
         </div>
       </div>
@@ -289,7 +244,7 @@ export default function VideoChat() {
         cameraOn={cameraOn}
       />
 
-      <div className="status" style={{ marginTop: 8 }}>
+      <div className="status">
         <strong>Status:</strong> {status} {autoMode && '(auto)'}
       </div>
     </div>
