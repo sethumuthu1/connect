@@ -250,6 +250,7 @@ export default function VideoChat() {
     streamRef.current.getAudioTracks().forEach((t) => (t.enabled = !t.enabled));
     setMuted((m) => !m);
   };
+  
 
   const toggleCamera = () => {
     if (!streamRef.current) return;
