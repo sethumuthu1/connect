@@ -517,7 +517,7 @@
     display: flex;
     flex-direction: column;
     background: var(--card-bg);
-    height: 70%;
+    height: 60%;
   }
   
   .mobile-chat-messages {
@@ -571,7 +571,7 @@
 /* Small Mobile */
 @media (max-width: 480px) {
   .mobile-video-section {
-    height: 40vh;
+    height: 40%;
   }
   
   .your-video-mobile {
