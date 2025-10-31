@@ -629,14 +629,51 @@
 }
 
 
+/* ===============================
+   FIX: Mobile layout overflow issue
+=============================== */
+
+/* Lock the layout width and prevent horizontal scroll */
 html, body {
   width: 100%;
+  max-width: 100%;
   overflow-x: hidden;
 }
 
+/* Ensure the main app and mobile wrapper never overflow */
 .video-chat-app,
 .mobile-layout {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden; /* ✅ prevent page from scrolling sideways */
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Prevent chat and controls from pushing content sideways */
+.mobile-chat-section,
+.mobile-controls-input,
+.mobile-input-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* Reduce button constraints to fit small widths */
+.mobile-controls .control-btn,
+.send-button {
+  min-width: auto;
+  flex-shrink: 1;
+}
+
+/* Make sure no inner flex item overflows */
+.mobile-controls,
+.mobile-input-container {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
 }
