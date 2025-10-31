@@ -652,14 +652,14 @@ html, body {
 }
 
 /* Prevent chat and controls from pushing content sideways */
-.mobile-chat-section,
+/* .mobile-chat-section,
 .mobile-controls-input,
 .mobile-input-container {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
   box-sizing: border-box;
-}
+} */
 
 /* Reduce button constraints to fit small widths */
 .mobile-controls .control-btn,
