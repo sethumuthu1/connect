@@ -517,27 +517,24 @@ export default function VideoChat() {
               </button>
             </div>
 
-           <div className="mobile-input-container">
-  <div className="chat-input-wrapper">
-    <input
-      type="text"
-      value={msgInput}
-      onChange={(e) => setMsgInput(e.target.value)}
-      onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-      placeholder="Type a message..."
-      disabled={!started}
-      className="chat-input"
-    />
-    <button 
-      className="send-button inside"
-      onClick={handleSend}
-      disabled={!started || !msgInput.trim()}
-    >
-      <FaPaperPlane />
-    </button>
-  </div>
-</div>
-
+            <div className="mobile-input-container">
+              <input
+                type="text"
+                value={msgInput}
+                onChange={(e) => setMsgInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                placeholder="Type a message..."
+                disabled={!started}
+                className="chat-input"
+              />
+              <button 
+                className="send-button"
+                onClick={handleSend}
+                disabled={!started || !msgInput.trim()}
+              >
+                <FaPaperPlane />
+              </button>
+            </div>
           </div>
         </div>
       </div>
