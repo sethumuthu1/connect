@@ -479,7 +479,7 @@
   .mobile-layout {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
   }
   
   /* Video Section - Top (35%) */
