@@ -43,7 +43,7 @@
 =============================== */
 
 .video-chat-app {
-  height: 95vh;
+  height: 100%;
   background: var(--primary-bg);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -571,7 +571,7 @@
 /* Small Mobile */
 @media (max-width: 480px) {
   .mobile-video-section {
-    height: 40%;
+
   }
   
   .your-video-mobile {
