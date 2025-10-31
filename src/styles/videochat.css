@@ -43,7 +43,7 @@
 =============================== */
 
 .video-chat-app {
-  height: 100vh;
+  height: 100%;
   background: var(--primary-bg);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
