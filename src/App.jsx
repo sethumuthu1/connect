@@ -1,16 +1,15 @@
-// App.jsx - top-level routing container
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import HomePage from './pages/HomePage';
-import './styles/home.css';
-import VideoChat from './components/VideoChat';
+import React from "react";
+import { Routes, Route } from "react-router-dom";
+import HomePage from "./pages/HomePage";
+import VideoChat from "./components/VideoChat";
+import "./styles/home.css";
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="videochat" element={<VideoChat />} />
-      {/* future pages can be added here */}
+      <Route path="/videochat" element={<VideoChat />} />
+      <Route path="*" element={<HomePage />} />
     </Routes>
   );
 }
