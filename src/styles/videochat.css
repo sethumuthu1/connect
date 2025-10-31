@@ -53,6 +53,9 @@
   display: none;
 }
 
+
+
+
 /* ===============================
    DESKTOP LAYOUT
 =============================== */
@@ -75,6 +78,7 @@
   flex: 1;
   position: relative;
   padding: 20px;
+  height: calc(99% - 100px); /* leave space for bottom controls */
 }
 
 .video-wrapper {
@@ -256,6 +260,8 @@
   font-size: 0.9rem;
 }
 
+
+
 /* Chat Section - Right (70%) */
 .chat-section {
   width: 75%;
@@ -314,6 +320,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: 80%;
 }
 
 .empty-chat {
@@ -510,6 +517,7 @@
     display: flex;
     flex-direction: column;
     background: var(--card-bg);
+    height: 70%;
   }
   
   .mobile-chat-messages {
@@ -520,6 +528,8 @@
     flex-direction: column;
     gap: 12px;
   }
+
+  
   
   .mobile-controls-input {
     border-top: 1px solid var(--border-light);

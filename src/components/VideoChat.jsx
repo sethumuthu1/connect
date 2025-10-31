@@ -44,8 +44,12 @@ const ICE_CONFIG = {
 };
 
 export default function VideoChat() {
-  const localVideoRef = useRef(null);
-  const remoteVideoRef = useRef(null);
+  // Separate refs for desktop & mobile
+  const localVideoRefDesktop = useRef(null);
+  const remoteVideoRefDesktop = useRef(null);
+  const localVideoRefMobile = useRef(null);
+  const remoteVideoRefMobile = useRef(null);
+
   const socketRef = useRef(null);
   const pcRef = useRef(null);
   const partnerRef = useRef(null);
@@ -78,16 +82,21 @@ export default function VideoChat() {
     try {
       const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       streamRef.current = media;
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = media;
-        localVideoRef.current.muted = true;
+
+      // assign stream to both desktop & mobile
+      if (localVideoRefDesktop.current) {
+        localVideoRefDesktop.current.srcObject = media;
+        localVideoRefDesktop.current.muted = true;
+      }
+      if (localVideoRefMobile.current) {
+        localVideoRefMobile.current.srcObject = media;
+        localVideoRefMobile.current.muted = true;
       }
     } catch (err) {
       alert("Please allow camera & microphone access.");
       console.error("getUserMedia error", err);
     }
   };
-  
 
   const initSocket = () => {
     if (socketRef.current) return;
@@ -164,7 +173,9 @@ export default function VideoChat() {
     streamRef.current.getTracks().forEach((t) => pcRef.current.addTrack(t, streamRef.current));
     
     pcRef.current.ontrack = (e) => {
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0];
+      // assign remote stream to both layouts
+      if (remoteVideoRefDesktop.current) remoteVideoRefDesktop.current.srcObject = e.streams[0];
+      if (remoteVideoRefMobile.current) remoteVideoRefMobile.current.srcObject = e.streams[0];
       setIsConnected(true);
       setIsLoading(false);
       setMessages(prev => [...prev, { from: "System", text: "Connected with stranger!", type: "system" }]);
@@ -195,9 +206,8 @@ export default function VideoChat() {
       pcRef.current.close();
       pcRef.current = null;
     }
-    if (remoteVideoRef.current?.srcObject) {
-      remoteVideoRef.current.srcObject = null;
-    }
+    if (remoteVideoRefDesktop.current?.srcObject) remoteVideoRefDesktop.current.srcObject = null;
+    if (remoteVideoRefMobile.current?.srcObject) remoteVideoRefMobile.current.srcObject = null;
     partnerRef.current = null;
     setIsConnected(false);
     setIsLoading(false);
@@ -265,13 +275,12 @@ export default function VideoChat() {
             {/* Stranger Video - Main */}
             <div className="video-wrapper stranger-video">
               <video 
-                ref={remoteVideoRef} 
+                ref={remoteVideoRefDesktop} 
                 autoPlay 
                 playsInline 
                 className="video-element"
               />
               
-              {/* Loading State */}
               {isLoading && (
                 <div className="video-overlay loading">
                   <div className="loading-spinner"></div>
@@ -279,7 +288,6 @@ export default function VideoChat() {
                 </div>
               )}
               
-              {/* Not Connected State */}
               {!isConnected && !isLoading && (
                 <div className="video-overlay idle">
                   <div className="user-avatar">
@@ -292,10 +300,10 @@ export default function VideoChat() {
               <div className="video-label">Stranger</div>
             </div>
 
-            {/* Your Video - PIP */}
+            {/* Your Video */}
             <div className="video-wrapper your-video">
               <video 
-                ref={localVideoRef} 
+                ref={localVideoRefDesktop} 
                 autoPlay 
                 playsInline 
                 muted 
@@ -336,9 +344,7 @@ export default function VideoChat() {
                 onClick={handleStartLeave}
               >
                 {showConfirmLeave ? (
-                  <>
-                    <span className="confirm-text">Are you sure?</span>
-                  </>
+                  <span className="confirm-text">Are you sure?</span>
                 ) : started ? (
                   <>
                     <FaPhoneSlash />
@@ -417,17 +423,15 @@ export default function VideoChat() {
 
       {/* Mobile Layout */}
       <div className="mobile-layout">
-        {/* Video Area - Top */}
         <div className="mobile-video-section">
           <div className="stranger-video-mobile">
             <video 
-              ref={remoteVideoRef} 
+              ref={remoteVideoRefMobile} 
               autoPlay 
               playsInline 
               className="video-element"
             />
             
-            {/* Loading State */}
             {isLoading && (
               <div className="video-overlay loading">
                 <div className="loading-spinner"></div>
@@ -435,7 +439,6 @@ export default function VideoChat() {
               </div>
             )}
             
-            {/* Not Connected State */}
             {!isConnected && !isLoading && (
               <div className="video-overlay idle">
                 <div className="user-avatar">
@@ -446,10 +449,9 @@ export default function VideoChat() {
             )}
           </div>
 
-          {/* Your Video - Small PIP */}
           <div className="your-video-mobile">
             <video 
-              ref={localVideoRef} 
+              ref={localVideoRefMobile} 
               autoPlay 
               playsInline 
               muted 
@@ -463,7 +465,6 @@ export default function VideoChat() {
           </div>
         </div>
 
-        {/* Chat Area - Bottom */}
         <div className="mobile-chat-section">
           <div className="mobile-chat-messages" ref={chatBodyRef}>
             {messages.length === 0 ? (
