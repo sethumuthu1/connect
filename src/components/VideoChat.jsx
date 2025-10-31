@@ -1,6 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
-import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaPaperPlane } from "react-icons/fa";
+import { 
+  FaMicrophone, 
+  FaMicrophoneSlash, 
+  FaVideo, 
+  FaVideoSlash, 
+  FaPaperPlane,
+  FaPhone,
+  FaPhoneSlash,
+  FaUser,
+  FaRegSmile
+} from "react-icons/fa";
 import "../styles/videochat.css";
 
 const SIGNAL_SERVER =
@@ -40,12 +50,14 @@ export default function VideoChat() {
   const pcRef = useRef(null);
   const partnerRef = useRef(null);
   const streamRef = useRef(null);
-  const [stream, setStream] = useState(null);
+  const chatBodyRef = useRef(null);
 
-  const [status, setStatus] = useState("idle");
   const [started, setStarted] = useState(false);
   const [muted, setMuted] = useState(false);
   const [cameraOn, setCameraOn] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+  const [showConfirmLeave, setShowConfirmLeave] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // chat
   const [messages, setMessages] = useState([]);
@@ -55,39 +67,44 @@ export default function VideoChat() {
     return () => cleanup();
   }, []);
 
+  useEffect(() => {
+    if (chatBodyRef.current) {
+      chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
+    }
+  }, [messages]);
+
   const initCamera = async () => {
     if (streamRef.current) return;
     try {
       const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       streamRef.current = media;
-      setStream(media);
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = media;
         localVideoRef.current.muted = true;
       }
-      console.log("Camera ready");
     } catch (err) {
       alert("Please allow camera & microphone access.");
       console.error("getUserMedia error", err);
     }
   };
+  
 
   const initSocket = () => {
     if (socketRef.current) return;
     socketRef.current = io(SIGNAL_SERVER, { transports: ["websocket"] });
-    setStatus("connecting");
+    setIsLoading(true);
 
     socketRef.current.on("connect", () => {
-      console.log("Socket connected", socketRef.current.id);
       socketRef.current.emit("join");
     });
 
-    socketRef.current.on("waiting", () => setStatus("waiting"));
+    socketRef.current.on("waiting", () => {
+      setIsLoading(true);
+    });
 
     socketRef.current.on("matched", async ({ partnerId, initiator }) => {
-      console.log("Matched", partnerId, "initiator=", initiator);
       partnerRef.current = partnerId;
-      setStatus("matched");
+      setIsLoading(true);
       if (!streamRef.current) await initCamera();
       createPeer(!!initiator);
     });
@@ -115,21 +132,24 @@ export default function VideoChat() {
     });
 
     socketRef.current.on("partner-left", () => {
-      console.log("Partner left");
+      setMessages(prev => [...prev, { from: "System", text: "Stranger has left the chat", type: "system" }]);
+      setIsConnected(false);
+      setIsLoading(false);
       endCall(false);
       if (started && socketRef.current) socketRef.current.emit("join");
     });
 
     socketRef.current.on("disconnect", () => {
-      console.log("Socket disconnected");
       cleanup();
     });
 
-    socketRef.current.on("connect_error", (err) => console.warn("Socket connect_error", err));
-
-    // ✅ Listen for chat messages
+    // Listen for chat messages
     socketRef.current.on("chat-message", ({ from, text }) => {
-      setMessages((prev) => [...prev, { from: from === socketRef.current.id ? "You" : "Stranger", text }]);
+      setMessages((prev) => [...prev, { 
+        from: from === socketRef.current.id ? "You" : "Stranger", 
+        text,
+        type: "message"
+      }]);
     });
   };
 
@@ -138,21 +158,24 @@ export default function VideoChat() {
   };
 
   const createPeer = async (isInitiator) => {
-    if (!streamRef.current) {
-      console.error("No local stream before createPeer");
-      return;
-    }
+    if (!streamRef.current) return;
+    
     pcRef.current = new RTCPeerConnection(ICE_CONFIG);
     streamRef.current.getTracks().forEach((t) => pcRef.current.addTrack(t, streamRef.current));
+    
     pcRef.current.ontrack = (e) => {
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0];
-      setStatus("in-call");
+      setIsConnected(true);
+      setIsLoading(false);
+      setMessages(prev => [...prev, { from: "System", text: "Connected with stranger!", type: "system" }]);
     };
+    
     pcRef.current.onicecandidate = (ev) => {
       if (ev.candidate && socketRef.current && partnerRef.current) {
         socketRef.current.emit("signal", { to: partnerRef.current, data: ev.candidate });
       }
     };
+    
     if (isInitiator) {
       try {
         const offer = await pcRef.current.createOffer();
@@ -166,51 +189,49 @@ export default function VideoChat() {
 
   const endCall = (manual = true) => {
     if (manual && socketRef.current) {
-      try {
-        socketRef.current.emit("leave");
-      } catch {}
+      socketRef.current.emit("leave");
     }
     if (pcRef.current) {
-      try {
-        pcRef.current.close();
-      } catch {}
+      pcRef.current.close();
       pcRef.current = null;
     }
     if (remoteVideoRef.current?.srcObject) {
-      try {
-        remoteVideoRef.current.srcObject = null;
-      } catch {}
+      remoteVideoRef.current.srcObject = null;
     }
     partnerRef.current = null;
-    setStatus("idle");
+    setIsConnected(false);
+    setIsLoading(false);
   };
 
   const cleanup = () => {
     endCall(true);
     if (socketRef.current) {
-      try {
-        socketRef.current.disconnect();
-      } catch {}
+      socketRef.current.disconnect();
       socketRef.current = null;
     }
     if (streamRef.current) {
-      try {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      } catch {}
+      streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
-      setStream(null);
     }
     setStarted(false);
+    setMessages([]);
+    setShowConfirmLeave(false);
   };
 
   const handleStartLeave = async () => {
     if (!started) {
       setStarted(true);
+      setMessages([]);
       await initCamera();
       initSocket();
     } else {
-      setStarted(false);
-      cleanup();
+      if (!showConfirmLeave) {
+        setShowConfirmLeave(true);
+        setTimeout(() => setShowConfirmLeave(false), 3000);
+      } else {
+        setStarted(false);
+        cleanup();
+      }
     }
   };
 
@@ -226,63 +247,293 @@ export default function VideoChat() {
     setCameraOn((c) => !c);
   };
 
-  // ✅ Send chat message through socket
   const handleSend = () => {
     if (!msgInput.trim() || !socketRef.current || !partnerRef.current) return;
     const text = msgInput.trim();
     socketRef.current.emit("chat-message", { to: partnerRef.current, text });
-    setMessages((m) => [...m, { from: "You", text }]);
+    setMessages((m) => [...m, { from: "You", text, type: "message" }]);
     setMsgInput("");
   };
 
   return (
-    <div className="joingy-layout">
-      <div className="video-side">
-        <div className="video-box top-box">
-          <video ref={localVideoRef} autoPlay playsInline muted className="video-el" />
-          <div className="video-label">You</div>
-          <div className="video-overlay">
-            <button className="icon-btn" onClick={toggleMute} title={muted ? "Unmute" : "Mute"}>
-              {muted ? <FaMicrophoneSlash /> : <FaMicrophone />}
-            </button>
-            <button className="icon-btn" onClick={toggleCamera} title={cameraOn ? "Camera Off" : "Camera On"}>
-              {cameraOn ? <FaVideo /> : <FaVideoSlash />}
+    <div className="video-chat-app">
+      {/* Desktop Layout */}
+      <div className="desktop-layout">
+        {/* Video Section - Left */}
+        <div className="video-section">
+          <div className="video-container">
+            {/* Stranger Video - Main */}
+            <div className="video-wrapper stranger-video">
+              <video 
+                ref={remoteVideoRef} 
+                autoPlay 
+                playsInline 
+                className="video-element"
+              />
+              
+              {/* Loading State */}
+              {isLoading && (
+                <div className="video-overlay loading">
+                  <div className="loading-spinner"></div>
+                  <p>Looking for someone to connect with...</p>
+                </div>
+              )}
+              
+              {/* Not Connected State */}
+              {!isConnected && !isLoading && (
+                <div className="video-overlay idle">
+                  <div className="user-avatar">
+                    <FaUser />
+                  </div>
+                  <p>Ready to connect with strangers</p>
+                </div>
+              )}
+              
+              <div className="video-label">Stranger</div>
+            </div>
+
+            {/* Your Video - PIP */}
+            <div className="video-wrapper your-video">
+              <video 
+                ref={localVideoRef} 
+                autoPlay 
+                playsInline 
+                muted 
+                className="video-element"
+              />
+              {!cameraOn && (
+                <div className="camera-off-overlay">
+                  <FaVideoSlash />
+                </div>
+              )}
+              <div className="video-label">You</div>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="controls-panel">
+            <div className="controls-group">
+              <button 
+                className={`control-btn ${muted ? 'active' : ''}`}
+                onClick={toggleMute}
+                title={muted ? "Unmute" : "Mute"}
+              >
+                {muted ? <FaMicrophoneSlash /> : <FaMicrophone />}
+                <span className="btn-label">{muted ? "Unmute" : "Mute"}</span>
+              </button>
+              
+              <button 
+                className={`control-btn ${!cameraOn ? 'active' : ''}`}
+                onClick={toggleCamera}
+                title={cameraOn ? "Turn off camera" : "Turn on camera"}
+              >
+                {cameraOn ? <FaVideo /> : <FaVideoSlash />}
+                <span className="btn-label">{cameraOn ? "Video" : "Video Off"}</span>
+              </button>
+              
+              <button 
+                className={`control-btn call-btn ${started ? 'end' : 'start'}`}
+                onClick={handleStartLeave}
+              >
+                {showConfirmLeave ? (
+                  <>
+                    <span className="confirm-text">Are you sure?</span>
+                  </>
+                ) : started ? (
+                  <>
+                    <FaPhoneSlash />
+                    <span className="btn-label">Leave</span>
+                  </>
+                ) : (
+                  <>
+                    <FaPhone />
+                    <span className="btn-label">Start Call</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Chat Section - Right */}
+        <div className="chat-section">
+          <div className="chat-header">
+            <h3>Live Chat</h3>
+            <div className="chat-status">
+              <div className={`status-dot ${isConnected ? 'connected' : 'disconnected'}`}></div>
+              <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+            </div>
+          </div>
+
+          <div className="chat-messages" ref={chatBodyRef}>
+            {messages.length === 0 ? (
+              <div className="empty-chat">
+                <FaRegSmile className="empty-icon" />
+                <p>Start a conversation!</p>
+                <span>Send a message to begin chatting</span>
+              </div>
+            ) : (
+              messages.map((message, index) => (
+                <div 
+                  key={index} 
+                  className={`message ${message.from === "You" ? 'outgoing' : 'incoming'} ${message.type === 'system' ? 'system' : ''}`}
+                >
+                  <div className="message-content">
+                    {message.type !== 'system' && (
+                      <div className="message-sender">{message.from}</div>
+                    )}
+                    <div className="message-bubble">
+                      {message.text}
+                    </div>
+                    <div className="message-time">
+                      {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="chat-input-container">
+            <input
+              type="text"
+              value={msgInput}
+              onChange={(e) => setMsgInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Type your message here..."
+              disabled={!started}
+              className="chat-input"
+            />
+            <button 
+              className="send-button"
+              onClick={handleSend}
+              disabled={!started || !msgInput.trim()}
+            >
+              <FaPaperPlane />
             </button>
           </div>
         </div>
-        <div className="video-box bottom-box">
-          <video ref={remoteVideoRef} autoPlay playsInline className="video-el" />
-          <div className="video-label">Stranger</div>
-        </div>
       </div>
 
-      <div className="chat-side">
-        <div className="chat-body">
-          {messages.length === 0 ? (
-            <p className="chat-placeholder">You're now chatting with a random stranger!</p>
-          ) : (
-            messages.map((m, i) => (
-              <div key={i} className="chat-message">
-                <strong>{m.from}:</strong> {m.text}
+      {/* Mobile Layout */}
+      <div className="mobile-layout">
+        {/* Video Area - Top */}
+        <div className="mobile-video-section">
+          <div className="stranger-video-mobile">
+            <video 
+              ref={remoteVideoRef} 
+              autoPlay 
+              playsInline 
+              className="video-element"
+            />
+            
+            {/* Loading State */}
+            {isLoading && (
+              <div className="video-overlay loading">
+                <div className="loading-spinner"></div>
+                <p>Connecting...</p>
               </div>
-            ))
-          )}
+            )}
+            
+            {/* Not Connected State */}
+            {!isConnected && !isLoading && (
+              <div className="video-overlay idle">
+                <div className="user-avatar">
+                  <FaUser />
+                </div>
+                <p>Ready to connect</p>
+              </div>
+            )}
+          </div>
+
+          {/* Your Video - Small PIP */}
+          <div className="your-video-mobile">
+            <video 
+              ref={localVideoRef} 
+              autoPlay 
+              playsInline 
+              muted 
+              className="video-element"
+            />
+            {!cameraOn && (
+              <div className="camera-off-overlay">
+                <FaVideoSlash />
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="chat-footer">
-          <button className={`start-leave ${started ? "leave" : "start"}`} onClick={handleStartLeave}>
-            {started ? "Leave" : "Start"}
-          </button>
-          <input
-            value={msgInput}
-            onChange={(e) => setMsgInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Type a message..."
-            disabled={!started}
-          />
-          <button className="send-btn" onClick={handleSend} disabled={!started || !msgInput.trim()}>
-            <FaPaperPlane style={{ marginRight: 6 }} /> Send
-          </button>
+        {/* Chat Area - Bottom */}
+        <div className="mobile-chat-section">
+          <div className="mobile-chat-messages" ref={chatBodyRef}>
+            {messages.length === 0 ? (
+              <div className="empty-chat">
+                <FaRegSmile className="empty-icon" />
+                <p>Start chatting!</p>
+              </div>
+            ) : (
+              messages.map((message, index) => (
+                <div 
+                  key={index} 
+                  className={`message ${message.from === "You" ? 'outgoing' : 'incoming'} ${message.type === 'system' ? 'system' : ''}`}
+                >
+                  <div className="message-bubble">
+                    {message.text}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="mobile-controls-input">
+            <div className="mobile-controls">
+              <button 
+                className={`control-btn ${muted ? 'active' : ''}`}
+                onClick={toggleMute}
+              >
+                {muted ? <FaMicrophoneSlash /> : <FaMicrophone />}
+              </button>
+              
+              <button 
+                className={`control-btn ${!cameraOn ? 'active' : ''}`}
+                onClick={toggleCamera}
+              >
+                {cameraOn ? <FaVideo /> : <FaVideoSlash />}
+              </button>
+              
+              <button 
+                className={`control-btn call-btn ${started ? 'end' : 'start'}`}
+                onClick={handleStartLeave}
+              >
+                {showConfirmLeave ? (
+                  "Sure?"
+                ) : started ? (
+                  <FaPhoneSlash />
+                ) : (
+                  <FaPhone />
+                )}
+              </button>
+            </div>
+
+            <div className="mobile-input-container">
+              <input
+                type="text"
+                value={msgInput}
+                onChange={(e) => setMsgInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                placeholder="Type a message..."
+                disabled={!started}
+                className="chat-input"
+              />
+              <button 
+                className="send-button"
+                onClick={handleSend}
+                disabled={!started || !msgInput.trim()}
+              >
+                <FaPaperPlane />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
