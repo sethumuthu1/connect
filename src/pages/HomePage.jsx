@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { io } from "socket.io-client";
 import { 
   FaVideo, 
   FaComments, 
@@ -86,6 +87,20 @@ export default function LandingPage() {
     setDarkMode(newMode);
     document.documentElement.setAttribute("data-theme", newMode ? "dark" : "light");
   };
+
+  useEffect(() => {
+  const socket = io("http://localhost:4000"); // or your backend URL
+
+  socket.on("online-count", (count) => {
+    setOnlineUsers(count);
+  });
+
+  // Clean up on unmount
+  return () => {
+    socket.disconnect();
+  };
+}, []);
+
 
   useEffect(() => {
     const saved = localStorage.getItem("theme");
@@ -244,11 +259,12 @@ export default function LandingPage() {
 
           <div className="header-right">
             <div className="online-indicator">
-              <div className="pulse-dot"></div>
-              <FaUsers className="online-icon" />
-              <span className="online-count">{onlineUsers.toLocaleString()}</span>
-              <span className="online-text">online now</span>
-            </div>
+  <div className="pulse-dot"></div>
+  <FaUsers className="online-icon" />
+  <span className="online-count">{onlineUsers}</span>
+  <span className="online-text">online now</span>
+</div>
+
             <div className="header-controls">
               <button 
                 className="interest-btn"
