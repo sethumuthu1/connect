@@ -269,158 +269,336 @@ export default function VideoChat() {
   return (
     <div className="video-chat-app">
       {/* Desktop Layout */}
-      <div className="desktop-layout">
-        {/* Video Section - Left */}
-        <div className="video-section">
-          <div className="video-container">
-            {/* Stranger Video - Main */}
-            <div className="video-wrapper stranger-video">
-              <video 
-                ref={remoteVideoRefDesktop} 
-                autoPlay 
-                playsInline 
-                className="video-element"
-              />
-              
-              {isLoading && (
-                <div className="video-overlay loading">
-                  <div className="loading-spinner"></div>
-                  <p>Looking for someone to connect with...</p>
-                </div>
-              )}
-              
-              {!isConnected && !isLoading && (
-                <div className="video-overlay idle">
-                  <div className="user-avatar">
-                    <FaUser />
-                  </div>
-                  <p>Ready to connect with strangers</p>
-                </div>
-              )}
-              
-              <div className="video-label">Stranger</div>
-            </div>
+     {/* Desktop Layout */}
+<div
+  className="desktop-layout"
+  style={{
+    display: "flex",
+    alignItems: "stretch",
+    gap: "14px",
+    padding: "14px",
+    background: "#ffffff",
+    fontFamily: "Arial, Helvetica, sans-serif",
+    // height: "calc(100vh - 70px)",
+    boxSizing: "border-box",
+  }}
+>
+  {/* LEFT: stacked video boxes, equal height */}
+  <div
+    style={{
+      width: "360px",
+      flexShrink: 0,
+      display: "flex",
+      flexDirection: "column",
+      gap: "10px",
+      height: "100%",
+    }}
+  >
+    {/* Stranger video box */}
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        flex: "1",
+        background: "#4d4d4d",
+        overflow: "hidden",
+        borderRadius: "4px",
+      }}
+    >
+      <video
+        ref={remoteVideoRefDesktop}
+        autoPlay
+        playsInline
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
 
-            {/* Your Video */}
-            <div className="video-wrapper your-video">
-              <video 
-                ref={localVideoRefDesktop} 
-                autoPlay 
-                playsInline 
-                muted 
-                className="video-element"
-              />
-              {!cameraOn && (
-                <div className="camera-off-overlay">
-                  <FaVideoSlash />
-                </div>
-              )}
-              <div className="video-label">You</div>
-            </div>
-          </div>
-
-          {/* Controls */}
-          <div className="controls-panel">
-            <div className="controls-group">
-              <button 
-                className={`control-btn ${muted ? 'active' : ''}`}
-                onClick={toggleMute}
-                title={muted ? "Unmute" : "Mute"}
-              >
-                {muted ? <FaMicrophoneSlash /> : <FaMicrophone />}
-                <span className="btn-label">{muted ? "Unmute" : "Mute"}</span>
-              </button>
-              
-              <button 
-                className={`control-btn ${!cameraOn ? 'active' : ''}`}
-                onClick={toggleCamera}
-                title={cameraOn ? "Turn off camera" : "Turn on camera"}
-              >
-                {cameraOn ? <FaVideo /> : <FaVideoSlash />}
-                <span className="btn-label">{cameraOn ? "Video" : "Video Off"}</span>
-              </button>
-              
-              <button 
-                className={`control-btn call-btn ${started ? 'end' : 'start'}`}
-                onClick={handleStartLeave}
-              >
-                {showConfirmLeave ? (
-                  <span className="confirm-text">Are you sure?</span>
-                ) : started ? (
-                  <>
-                    <FaPhoneSlash />
-                    <span className="btn-label">Leave</span>
-                  </>
-                ) : (
-                  <>
-                    <FaPhone />
-                    <span className="btn-label">Start Call</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
+      {isLoading && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "14px",
+            background: "#4d4d4d",
+            color: "#ddd",
+            fontSize: "13px",
+          }}
+        >
+          <div
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "50%",
+              border: "3px solid rgba(255,255,255,0.25)",
+              borderTopColor: "#ffffff",
+              animation: "zingleSpin 0.8s linear infinite",
+            }}
+          />
         </div>
+      )}
 
-        {/* Chat Section - Right */}
-        <div className="chat-section">
-          <div className="chat-header">
-            <h3>Live Chat</h3>
-            <div className="chat-status">
-              <div className={`status-dot ${isConnected ? 'connected' : 'disconnected'}`}></div>
-              <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
-            </div>
-          </div>
-
-          <div className="chat-messages" ref={chatBodyRef}>
-            {messages.length === 0 ? (
-              <div className="empty-chat">
-                <FaRegSmile className="empty-icon" />
-                <p>Start a conversation!</p>
-                <span>Send a message to begin chatting</span>
-              </div>
-            ) : (
-              messages.map((message, index) => (
-                <div 
-                  key={index} 
-                  className={`message ${message.from === "You" ? 'outgoing' : 'incoming'} ${message.type === 'system' ? 'system' : ''}`}
-                >
-                  <div className="message-content">
-                    {message.type !== 'system' && (
-                      <div className="message-sender">{message.from}</div>
-                    )}
-                    <div className="message-bubble">
-                      {message.text}
-                    </div>
-                    <div className="message-time">
-                      {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          <div className="chat-input-container">
-            <input
-              type="text"
-              value={msgInput}
-              onChange={(e) => setMsgInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Type your message here..."
-              disabled={!started}
-              className="chat-input"
-            />
-            <button 
-              className="send-button"
-              onClick={handleSend}
-              disabled={!started || !msgInput.trim()}
-            >
-              <FaPaperPlane />
-            </button>
-          </div>
+      {!isConnected && !isLoading && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "10px",
+            background: "#4d4d4d",
+            color: "#ccc",
+          }}
+        >
+          <FaUser style={{ fontSize: "28px" }} />
+          <p style={{ fontSize: "12px", margin: 0 }}>Ready to connect with strangers</p>
         </div>
+      )}
+    </div>
+
+    {/* Your video box - now same flex as stranger box */}
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        flex: "1",
+        background: "#000",
+        overflow: "hidden",
+        borderRadius: "4px",
+      }}
+    >
+      <video
+        ref={localVideoRefDesktop}
+        autoPlay
+        playsInline
+        muted
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
+
+      {!cameraOn && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#000",
+            color: "#888",
+          }}
+        >
+          <FaVideoSlash style={{ fontSize: "22px" }} />
+        </div>
+      )}
+
+      <div
+        style={{
+          position: "absolute",
+          bottom: "6px",
+          left: "8px",
+          fontSize: "13px",
+          fontWeight: 700,
+          color: "#4fc3f7",
+          textShadow: "0 1px 2px rgba(0,0,0,0.6)",
+        }}
+      >
+        Zingle.com
       </div>
+
+      <div style={{ position: "absolute", top: "8px", right: "8px", display: "flex", gap: "6px" }}>
+        <button
+          onClick={toggleMute}
+          title={muted ? "Unmute" : "Mute"}
+          style={{
+            width: "28px",
+            height: "28px",
+            borderRadius: "50%",
+            border: "none",
+            background: muted ? "#e53935" : "rgba(255,255,255,0.2)",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            fontSize: "12px",
+          }}
+        >
+          {muted ? <FaMicrophoneSlash /> : <FaMicrophone />}
+        </button>
+        <button
+          onClick={toggleCamera}
+          title={cameraOn ? "Turn off camera" : "Turn on camera"}
+          style={{
+            width: "28px",
+            height: "28px",
+            borderRadius: "50%",
+            border: "none",
+            background: !cameraOn ? "#e53935" : "rgba(255,255,255,0.2)",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            fontSize: "12px",
+          }}
+        >
+          {cameraOn ? <FaVideo /> : <FaVideoSlash />}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {/* RIGHT: chat pane, same height as left column */}
+  {/* RIGHT: chat pane - two separate floating cards like reference */}
+<div
+  style={{
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    height: "100%",
+    boxSizing: "border-box",
+  }}
+>
+  {/* Card 1: messages area */}
+  <div
+    ref={chatBodyRef}
+    style={{
+      flex: 1,
+      border: "1px solid #e5e5e5",
+      borderRadius: "12px",
+      background: "#ffffff",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
+      padding: "18px 20px",
+      overflowY: "auto",
+      fontSize: "14px",
+      lineHeight: "1.6",
+      color: "#333",
+    }}
+  >
+    {messages.length === 0 ? (
+      <p style={{ color: "#999", margin: 0 }}>You're not connected yet. Hit Start to find a stranger.</p>
+    ) : (
+      messages.map((message, index) => (
+        <div key={index} style={{ marginBottom: "4px" }}>
+          {message.type === "system" ? (
+            <span style={{ color: "#333" }}>{message.text}</span>
+          ) : (
+            <span>
+              <strong style={{ color: message.from === "You" ? "#0288d1" : "#e64a19" }}>
+                {message.from}:
+              </strong>{" "}
+              {message.text}
+            </span>
+          )}
+        </div>
+      ))
+    )}
+  </div>
+
+  {/* Card 2: bottom bar - separate Start button + separate input pill */}
+  {/* Card 2: bottom bar - separate Start button + separate input + separate Send button */}
+<div
+  style={{
+    display: "flex",
+    gap: "10px",
+    alignItems: "stretch",
+    flexShrink: 0,
+    height: "70px",
+  }}
+>
+  <button
+    onClick={handleStartLeave}
+    style={{
+      width: "110px",
+      border: "none",
+      borderRadius: "10px",
+      background: "linear-gradient(135deg, #7c6ff0, #6a5ae8)",
+      color: "#fff",
+      cursor: "pointer",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "12px 0",
+      boxShadow: "0 3px 10px rgba(106,90,232,0.35)",
+    }}
+  >
+    <span style={{ fontSize: "15px", fontWeight: 700 }}>
+      {showConfirmLeave ? "Sure?" : started ? "Stop" : "Start"}
+    </span>
+    <span style={{ fontSize: "11px", opacity: 0.85 }}>Esc</span>
+  </button>
+
+  <div
+    style={{
+      flex: 1,
+      display: "flex",
+      alignItems: "center",
+      border: "1px solid #e5e5e5",
+      borderRadius: "10px",
+      background: "#ffffff",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
+      padding: "0 16px",
+    }}
+  >
+    <input
+      type="text"
+      value={msgInput}
+      onChange={(e) => setMsgInput(e.target.value)}
+      onKeyDown={(e) => e.key === "Enter" && handleSend()}
+      placeholder="Type a message..."
+      disabled={!started}
+      style={{
+        flex: 1,
+        border: "none",
+        outline: "none",
+        padding: "12px 0",
+        fontSize: "14px",
+        background: "transparent",
+      }}
+    />
+  </div>
+
+  <button
+    onClick={handleSend}
+    disabled={!started || !msgInput.trim()}
+    style={{
+      width: "110px",
+      border: "none",
+      borderRadius: "10px",
+      background:
+        !started || !msgInput.trim()
+          ? "#e0e0e0"
+          : "linear-gradient(135deg, #7c6ff0, #6a5ae8)",
+      color: !started || !msgInput.trim() ? "#999" : "#fff",
+      cursor: !started || !msgInput.trim() ? "not-allowed" : "pointer",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "12px 0",
+      boxShadow:
+        !started || !msgInput.trim() ? "none" : "0 3px 10px rgba(106,90,232,0.35)",
+    }}
+  >
+    <span style={{ fontSize: "15px", fontWeight: 700 }}>Send</span>
+    <span style={{ fontSize: "11px", opacity: 0.85 }}>Enter</span>
+  </button>
+</div>
+</div>
+
+  <style>{`
+    @keyframes zingleSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  `}</style>
+</div>
 
       {/* Mobile Layout */}
       <div className="mobile-layout">
