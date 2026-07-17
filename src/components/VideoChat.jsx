@@ -62,6 +62,7 @@ export default function VideoChat() {
   const partnerRef = useRef(null);
   const streamRef = useRef(null);
   const remoteStreamRef = useRef(null);
+  const connectedNotifiedRef = useRef(false);
   const chatBodyRef = useRef(null);
 
   const [started, setStarted] = useState(false);
@@ -78,6 +79,18 @@ export default function VideoChat() {
     typeof window !== "undefined" ? window.innerWidth <= MOBILE_BREAKPOINT : false
   );
 
+  // Mobile browsers (esp. iOS Safari) resize 100vh unreliably as the
+  // address bar shows/hides, which is why the page could look taller
+  // than the visible screen and force a scroll/zoom to see everything.
+  // Tracking the real visual viewport height in JS and using that as an
+  // explicit pixel height keeps the layout pinned to exactly what's
+  // actually visible, no matter what the browser chrome is doing.
+  const [viewportHeight, setViewportHeight] = useState(
+    typeof window !== "undefined"
+      ? (window.visualViewport ? window.visualViewport.height : window.innerHeight)
+      : 800
+  );
+
   // chat
   const [messages, setMessages] = useState([]);
   const [msgInput, setMsgInput] = useState("");
@@ -86,14 +99,23 @@ export default function VideoChat() {
     return () => cleanup();
   }, []);
 
-  // Keep isMobile in sync with the viewport so resizing/rotating
-  // switches layouts instead of ever showing both.
+  // Keep isMobile and viewportHeight in sync with the real visible
+  // viewport so resizing/rotating switches layouts and the page never
+  // renders taller/wider than what's actually on screen.
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
+      setViewportHeight(
+        window.visualViewport ? window.visualViewport.height : window.innerHeight
+      );
     };
+    handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.visualViewport?.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("resize", handleResize);
+    };
   }, []);
 
   // Switching layout (desktop <-> mobile) mounts a brand-new set of
@@ -232,7 +254,10 @@ export default function VideoChat() {
       if (remoteVideoRefMobile.current) remoteVideoRefMobile.current.srcObject = e.streams[0];
       setIsConnected(true);
       setIsLoading(false);
-      setMessages(prev => [...prev, { from: "System", text: "Connected with stranger!", type: "system" }]);
+      if (!connectedNotifiedRef.current) {
+        connectedNotifiedRef.current = true;
+        setMessages(prev => [...prev, { from: "System", text: "Connected with stranger!", type: "system" }]);
+      }
     };
     
     pcRef.current.onicecandidate = (ev) => {
@@ -263,6 +288,7 @@ export default function VideoChat() {
     if (remoteVideoRefDesktop.current?.srcObject) remoteVideoRefDesktop.current.srcObject = null;
     if (remoteVideoRefMobile.current?.srcObject) remoteVideoRefMobile.current.srcObject = null;
     remoteStreamRef.current = null;
+    connectedNotifiedRef.current = false;
     partnerRef.current = null;
     setIsConnected(false);
     setIsLoading(false);
@@ -347,7 +373,7 @@ export default function VideoChat() {
     : "You have disconnected.";
 
   return (
-    <div className="video-chat-app">
+    <div className="video-chat-app" style={{ width: "100%", overflowX: "hidden", boxSizing: "border-box" }}>
       {/* Desktop Layout — only mounted when viewport is above the mobile breakpoint */}
       {!isMobile && (
         <div
@@ -685,12 +711,14 @@ export default function VideoChat() {
           style={{
             display: "flex",
             flexDirection: "column",
-            height: "100vh",
+            height: `${viewportHeight}px`,
+            width: "100%",
             maxWidth: "480px",
             margin: "0 auto",
             background: "#f5f1e9",
             fontFamily: "Arial, Helvetica, sans-serif",
             overflow: "hidden",
+            boxSizing: "border-box",
           }}
         >
           {/* ─────────── VIDEO AREA ─────────── */}
@@ -986,26 +1014,29 @@ export default function VideoChat() {
               display: "flex",
               alignItems: "center",
               padding: "10px",
+              paddingBottom: "calc(10px + env(safe-area-inset-bottom))",
               borderTop: "1px solid #ddd",
               background: "#f7f7f7",
               gap: "8px",
+              boxSizing: "border-box",
+              flexShrink: 0,
             }}
           >
             <button
-              onClick={handleNewChat}
+              onClick={handleStartLeave}
               style={{
                 padding: "12px 18px",
                 fontSize: "14px",
                 fontWeight: 700,
                 color: "#fff",
-                background: "#2196F3",
+                background: showConfirmLeave ? "#e53935" : started ? "#e53935" : "#2196F3",
                 border: "none",
                 borderRadius: "6px",
                 cursor: "pointer",
                 flexShrink: 0,
               }}
             >
-              New
+              {showConfirmLeave ? "Sure?" : started ? "Stop" : "Start"}
             </button>
             <input
               type="text"
@@ -1047,6 +1078,9 @@ export default function VideoChat() {
           </div>
 
           <style>{`
+            .mobile-layout, .mobile-layout * {
+              box-sizing: border-box;
+            }
             @keyframes zingleSpinMobile {
               from { transform: rotate(0deg); }
               to { transform: rotate(360deg); }
