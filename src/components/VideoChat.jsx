@@ -821,8 +821,8 @@ export default function VideoChat() {
                 position: "absolute",
                 top: "10px",
                 right: "10px",
-                width: "72px",
-                height: "96px",
+                width: "88px",
+                height: "116px",
                 borderRadius: "6px",
                 overflow: "hidden",
                 background: "#000",
@@ -1023,8 +1023,8 @@ export default function VideoChat() {
             <button
               onClick={handleStartLeave}
               style={{
-                padding: "16px 24px",
-                fontSize: "16px",
+                padding: "20px 24px",
+                fontSize: "17px",
                 fontWeight: 700,
                 color: "#fff",
                 background: showConfirmLeave ? "#e53935" : started ? "#e53935" : "#2196F3",
@@ -1045,6 +1045,7 @@ export default function VideoChat() {
               disabled={!started || !isConnected}
               style={{
                 flex: 1,
+                minWidth: 0,
                 padding: "16px 16px",
                 fontSize: "16px",
                 border: "1px solid #ccc",
