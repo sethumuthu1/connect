@@ -25,9 +25,12 @@ import { useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import "../styles/home.css";
 
-// Single shared socket connection for the landing page.
-// Replace with your actual backend URL (same one used by /textchat and /videochat).
-const socket = io("https://your-backend-url.com");
+// ⚠️ REPLACE THIS with your real backend URL — the SAME one your
+// /textchat and /videochat pages already connect to.
+// Example: "https://zingle-backend.onrender.com"
+const BACKEND_URL = "https://connect-backend-x7nc.onrender.com";
+
+const socket = io(BACKEND_URL);
 
 export default function LandingPage() {
   const [darkMode, setDarkMode] = useState(false);
@@ -107,12 +110,30 @@ export default function LandingPage() {
 
   // Live online users count — pushed by the backend over the "online-count" event
   useEffect(() => {
+    // Fallback: fetch the current count immediately via REST in case the
+    // socket connects a moment before this listener is attached.
+    fetch(`${BACKEND_URL}/online-count`)
+      .then((res) => res.json())
+      .then((data) => setOnlineUsers(data.count))
+      .catch((err) => console.error("Failed to fetch online count:", err));
+
+    socket.on("connect", () => {
+      console.log("✅ socket connected:", socket.id);
+    });
+
     socket.on("online-count", (count) => {
+      console.log("📊 online-count received:", count);
       setOnlineUsers(count);
     });
 
+    socket.on("connect_error", (err) => {
+      console.error("❌ socket connection error:", err.message);
+    });
+
     return () => {
+      socket.off("connect");
       socket.off("online-count");
+      socket.off("connect_error");
     };
   }, []);
 
