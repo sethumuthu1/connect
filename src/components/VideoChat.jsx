@@ -860,12 +860,16 @@ export default function VideoChat() {
           {!isConnected && (
             <div
               style={{
-                padding: "16px 20px 10px",
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                padding: "16px 20px",
                 textAlign: "center",
                 background: "#f5f1e9",
               }}
             >
-              <p style={{ fontSize: "14px", color: "#333", margin: "0 0 12px" }}>
+              <p style={{ fontSize: "20px", color: "#333", margin: "0 0 22px", fontWeight: 500 }}>
                 {mobileStatusText}
               </p>
 
@@ -874,34 +878,34 @@ export default function VideoChat() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "8px",
+                  gap: "12px",
                   flexWrap: "wrap",
-                  marginBottom: "10px",
+                  marginBottom: "18px",
                 }}
               >
                 <button
                   onClick={handleNewChat}
                   style={{
-                    padding: "10px 22px",
-                    fontSize: "15px",
+                    padding: "16px 32px",
+                    fontSize: "18px",
                     fontWeight: 700,
                     color: "#fff",
                     background: "#2196F3",
                     border: "none",
-                    borderRadius: "6px",
+                    borderRadius: "8px",
                     cursor: "pointer",
                   }}
                 >
                   New chat
                 </button>
-                <span style={{ fontSize: "13px", color: "#555" }}>or</span>
+                <span style={{ fontSize: "17px", color: "#555" }}>or</span>
                 <button
                   onClick={() => navigate("/textchat")}
                   style={{
                     background: "none",
                     border: "none",
                     padding: 0,
-                    fontSize: "13px",
+                    fontSize: "17px",
                     color: "#2196F3",
                     textDecoration: "underline",
                     cursor: "pointer",
@@ -909,13 +913,13 @@ export default function VideoChat() {
                 >
                   switch to text
                 </button>
-                <span style={{ fontSize: "13px", color: "#555" }}>or</span>
+                <span style={{ fontSize: "17px", color: "#555" }}>or</span>
                 <button
                   style={{
                     background: "none",
                     border: "none",
                     padding: 0,
-                    fontSize: "13px",
+                    fontSize: "17px",
                     color: "#2196F3",
                     textDecoration: "underline",
                     cursor: "pointer",
@@ -927,19 +931,24 @@ export default function VideoChat() {
 
               <label
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "6px",
-                  fontSize: "13px",
+                  display: "block",
+                  textAlign: "center",
+                  fontSize: "17px",
                   color: "#333",
                   cursor: "pointer",
+                  lineHeight: 1.6,
                 }}
               >
                 <input
                   type="checkbox"
                   checked={matchInterests}
                   onChange={(e) => setMatchInterests(e.target.checked)}
+                  style={{
+                    width: "18px",
+                    height: "18px",
+                    verticalAlign: "middle",
+                    marginRight: "8px",
+                  }}
                 />
                 Find strangers with common interests (
                 <span style={{ color: "#2196F3" }}>Enable</span>)
@@ -947,33 +956,21 @@ export default function VideoChat() {
             </div>
           )}
 
-          {/* ─────────── CHAT LOG ─────────── */}
-          <div
-            ref={chatBodyRef}
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "8px 16px",
-              background: "#fff",
-            }}
-          >
-            {messages.length === 0 ? (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                  color: "#aaa",
-                  gap: "6px",
-                }}
-              >
-                <FaRegSmile style={{ fontSize: "22px" }} />
-                <p style={{ margin: 0, fontSize: "13px" }}>Start chatting!</p>
-              </div>
-            ) : (
-              messages.map((message, index) => (
+          {/* ─────────── CHAT LOG ───────────
+              Hidden until there's actually something to show — no more
+              empty placeholder box sitting between the video and the
+              controls by default. */}
+          {messages.length > 0 && (
+            <div
+              ref={chatBodyRef}
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: "8px 16px",
+                background: "#fff",
+              }}
+            >
+              {messages.map((message, index) => (
                 <div
                   key={index}
                   style={{
@@ -1004,34 +1001,35 @@ export default function VideoChat() {
                     </span>
                   )}
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* ─────────── MESSAGE BAR ─────────── */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              padding: "10px",
-              paddingBottom: "calc(10px + env(safe-area-inset-bottom))",
+              padding: "14px",
+              paddingBottom: "calc(14px + env(safe-area-inset-bottom))",
               borderTop: "1px solid #ddd",
               background: "#f7f7f7",
-              gap: "8px",
+              gap: "10px",
               boxSizing: "border-box",
               flexShrink: 0,
+              marginTop: "auto",
             }}
           >
             <button
               onClick={handleStartLeave}
               style={{
-                padding: "12px 18px",
-                fontSize: "14px",
+                padding: "16px 24px",
+                fontSize: "16px",
                 fontWeight: 700,
                 color: "#fff",
                 background: showConfirmLeave ? "#e53935" : started ? "#e53935" : "#2196F3",
                 border: "none",
-                borderRadius: "6px",
+                borderRadius: "8px",
                 cursor: "pointer",
                 flexShrink: 0,
               }}
@@ -1047,10 +1045,10 @@ export default function VideoChat() {
               disabled={!started || !isConnected}
               style={{
                 flex: 1,
-                padding: "12px 14px",
-                fontSize: "14px",
+                padding: "16px 16px",
+                fontSize: "16px",
                 border: "1px solid #ccc",
-                borderRadius: "6px",
+                borderRadius: "8px",
                 outline: "none",
               }}
             />
@@ -1058,9 +1056,9 @@ export default function VideoChat() {
               onClick={handleSend}
               disabled={!started || !isConnected || !msgInput.trim()}
               style={{
-                width: "42px",
-                height: "42px",
-                borderRadius: "6px",
+                width: "52px",
+                height: "52px",
+                borderRadius: "8px",
                 border: "none",
                 flexShrink: 0,
                 background:
@@ -1073,7 +1071,7 @@ export default function VideoChat() {
                 justifyContent: "center",
               }}
             >
-              <FaPaperPlane style={{ fontSize: "14px" }} />
+              <FaPaperPlane style={{ fontSize: "18px" }} />
             </button>
           </div>
 
