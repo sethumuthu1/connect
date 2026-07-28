@@ -489,7 +489,7 @@ export default function LandingPage() {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "60px 20px",
+    padding: "30px 20px",
     position: "relative",
     overflow: "hidden",
     background: "linear-gradient(160deg, #d4f0fc 0%, #a8ddf7 55%, #7bc9f0 100%)",
@@ -590,13 +590,20 @@ export default function LandingPage() {
         justifyContent: "center",
         gap: "10px",
         marginBottom: "32px",
+        width: "100%",
+        maxWidth: "100%",
+        flexWrap: "nowrap",
+        boxSizing: "border-box",
       }}
     >
       <button
         onClick={() => navigate("/textchat")}
         style={{
-          padding: "18px 56px",
-          fontSize: "19px",
+          flex: "1 1 0",
+          minWidth: 0,
+          maxWidth: "160px",
+          padding: "16px 12px",
+          fontSize: "clamp(14px, 4vw, 19px)",
           fontWeight: 800,
           color: "#fff",
           border: "1px solid rgba(255,255,255,0.5)",
@@ -607,6 +614,8 @@ export default function LandingPage() {
           cursor: "pointer",
           boxShadow: "0 6px 24px rgba(2,136,209,0.45)",
           transition: "transform 0.15s ease, box-shadow 0.15s ease",
+          boxSizing: "border-box",
+          whiteSpace: "nowrap",
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = "translateY(-3px)";
@@ -620,13 +629,16 @@ export default function LandingPage() {
         Text
       </button>
 
-      <span style={{ color: "#888", fontSize: "15px" }}>or</span>
+      <span style={{ color: "#888", fontSize: "15px", flexShrink: 0 }}>or</span>
 
       <button
         onClick={() => navigate("/videochat")}
         style={{
-          padding: "18px 56px",
-          fontSize: "19px",
+          flex: "1 1 0",
+          minWidth: 0,
+          maxWidth: "160px",
+          padding: "16px 12px",
+          fontSize: "clamp(14px, 4vw, 19px)",
           fontWeight: 800,
           color: "#fff",
           border: "1px solid rgba(255,255,255,0.5)",
@@ -637,6 +649,8 @@ export default function LandingPage() {
           cursor: "pointer",
           boxShadow: "0 6px 24px rgba(3,155,229,0.45)",
           transition: "transform 0.15s ease, box-shadow 0.15s ease",
+          boxSizing: "border-box",
+          whiteSpace: "nowrap",
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = "translateY(-3px)";

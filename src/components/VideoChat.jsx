@@ -882,6 +882,7 @@ export default function VideoChat() {
             )}
 
             {/* Zingle mark, bottom-left of the stranger's video */}
+            {/* Zingle mark, bottom-left of the stranger's video */}
             <div
               style={{
                 position: "absolute",
@@ -893,7 +894,7 @@ export default function VideoChat() {
                 textShadow: "0 1px 2px rgba(0,0,0,0.15)",
               }}
             >
-              Zingle
+              Zingle<span style={{ fontWeight: 600, fontSize: "16px" }}>.com</span>
             </div>
 
             {/* Local video, small corner PIP */}
