@@ -79,6 +79,10 @@ export default function VideoChat() {
   // Holds whichever interest(s) the backend says this match shares,
   // so we can mention it once the peer connection actually goes live.
   const matchedInterestsRef = useRef([]);
+  // Mirrors the "Find strangers with common interests" checkbox so
+  // socket event handlers (which are set up once) always read the
+  // latest value instead of a stale one from when they were created.
+  const matchInterestsRef = useRef(false);
 
   const [started, setStarted] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -113,6 +117,12 @@ export default function VideoChat() {
   useEffect(() => {
     return () => cleanup();
   }, []);
+
+  // Keep the ref in sync with the checkbox so join calls always use the
+  // most up-to-date value, even inside callbacks registered earlier.
+  useEffect(() => {
+    matchInterestsRef.current = matchInterests;
+  }, [matchInterests]);
 
   // Keep isMobile and viewportHeight in sync with the real visible
   // viewport so resizing/rotating switches layouts and the page never
@@ -192,9 +202,13 @@ export default function VideoChat() {
     setIsLoading(true);
 
     socketRef.current.on("connect", () => {
-      // Send along whatever interests the user picked on the Home page
-      // so the backend can prefer matching people with a shared interest.
-      socketRef.current.emit("join", { interests: getSavedInterests() });
+      // Only send interests along if the "Find strangers with common
+      // interests" checkbox is checked. If it's unchecked, we send an
+      // empty list — interests are still saved on your profile, but they
+      // will NOT be used for matching, and you'll just get a normal
+      // random pairing instead.
+      const interests = matchInterestsRef.current ? getSavedInterests() : [];
+      socketRef.current.emit("join", { interests });
     });
 
     socketRef.current.on("waiting", () => {
@@ -238,7 +252,10 @@ export default function VideoChat() {
       setIsConnected(false);
       setIsLoading(false);
       endCall(false);
-      if (started && socketRef.current) socketRef.current.emit("join", { interests: getSavedInterests() });
+      if (started && socketRef.current) {
+        const interests = matchInterestsRef.current ? getSavedInterests() : [];
+        socketRef.current.emit("join", { interests });
+      }
     });
 
     socketRef.current.on("disconnect", () => {
@@ -368,7 +385,8 @@ export default function VideoChat() {
     endCall(false);
     setMessages([]);
     setIsLoading(true);
-    socketRef.current?.emit("join", { interests: getSavedInterests() });
+    const interests = matchInterestsRef.current ? getSavedInterests() : [];
+    socketRef.current?.emit("join", { interests });
   };
 
   const toggleMute = () => {

@@ -108,6 +108,22 @@ export default function LandingPage() {
     localStorage.setItem("theme", darkMode ? "dark" : "light");
   }, [darkMode]);
 
+  // Restore any interests the user previously saved (e.g. from an earlier
+  // visit, or after navigating to /videochat or /textchat and back) so
+  // they are NEVER lost automatically — the only way they go away is if
+  // the user manually clicks the ✕ on a chip to remove it.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("zingle_interests");
+      const saved = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(saved) && saved.length > 0) {
+        setSelectedInterests(["All", ...saved]);
+      }
+    } catch (e) {
+      console.error("Failed to restore saved interests:", e);
+    }
+  }, []);
+
   // Persist the user's chosen interests so the VideoChat page can read
   // them when it connects to the socket and use them for matching.
   useEffect(() => {
