@@ -28,7 +28,7 @@ import "../styles/home.css";
 // ⚠️ REPLACE THIS with your real backend URL — the SAME one your
 // /textchat and /videochat pages already connect to.
 // Example: "https://zingle-backend.onrender.com"
-const BACKEND_URL = "http://localhost:4000";
+const BACKEND_URL = "https://connect-backend-x7nc.onrender.com";
 
 const socket = io(BACKEND_URL);
 
