@@ -217,9 +217,8 @@ export default function VideoChat() {
 
     socketRef.current.on("matched", async ({ partnerId, initiator, matchedInterests }) => {
       partnerRef.current = partnerId;
-      // Remember which interest(s), if any, brought this pair together —
-      // used to build the "Connected with stranger!" chat message below.
       matchedInterestsRef.current = Array.isArray(matchedInterests) ? matchedInterests : [];
+      setMessages([]); // clear chat history for the new stranger
       setIsLoading(true);
       if (!streamRef.current) await initCamera();
       createPeer(!!initiator);
@@ -248,10 +247,10 @@ export default function VideoChat() {
     });
 
     socketRef.current.on("partner-left", () => {
-      setMessages(prev => [...prev, { from: "System", text: "Stranger has left the chat", type: "system" }]);
       setIsConnected(false);
       setIsLoading(false);
       endCall(false);
+      setMessages([]); // clear chat immediately, don't carry old messages into next pair
       if (started && socketRef.current) {
         const interests = matchInterestsRef.current ? getSavedInterests() : [];
         socketRef.current.emit("join", { interests });
@@ -913,6 +912,9 @@ export default function VideoChat() {
                 padding: "16px 20px",
                 textAlign: "center",
                 background: "#f5f1e9",
+                width: "100%",
+                maxWidth: "100%",
+                boxSizing: "border-box",
               }}
             >
               <p style={{ fontSize: "20px", color: "#333", margin: "0 0 22px", fontWeight: 500 }}>
@@ -924,51 +926,57 @@ export default function VideoChat() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "12px",
+                  gap: "8px",
                   flexWrap: "wrap",
-                  marginBottom: "18px",
+                  marginBottom: "16px",
+                  width: "100%",
+                  maxWidth: "100%",
+                  boxSizing: "border-box",
                 }}
               >
                 <button
                   onClick={handleNewChat}
                   style={{
-                    padding: "16px 32px",
-                    fontSize: "18px",
+                    padding: "10px 18px",
+                    fontSize: "14px",
                     fontWeight: 700,
                     color: "#fff",
                     background: "#2196F3",
                     border: "none",
                     borderRadius: "8px",
                     cursor: "pointer",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   New chat
                 </button>
-                <span style={{ fontSize: "17px", color: "#555" }}>or</span>
+                <span style={{ fontSize: "14px", color: "#555" }}>or</span>
                 <button
                   onClick={() => navigate("/textchat")}
                   style={{
                     background: "none",
                     border: "none",
                     padding: 0,
-                    fontSize: "17px",
+                    fontSize: "14px",
                     color: "#2196F3",
                     textDecoration: "underline",
                     cursor: "pointer",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   switch to text
                 </button>
-                <span style={{ fontSize: "17px", color: "#555" }}>or</span>
+                <span style={{ fontSize: "14px", color: "#555" }}>or</span>
                 <button
                   style={{
                     background: "none",
                     border: "none",
                     padding: 0,
-                    fontSize: "17px",
+                    fontSize: "14px",
                     color: "#2196F3",
                     textDecoration: "underline",
                     cursor: "pointer",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   unmoderated section
@@ -976,29 +984,31 @@ export default function VideoChat() {
               </div>
 
               <label
-                style={{
-                  display: "block",
-                  textAlign: "center",
-                  fontSize: "17px",
-                  color: "#333",
-                  cursor: "pointer",
-                  lineHeight: 1.6,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={matchInterests}
-                  onChange={(e) => setMatchInterests(e.target.checked)}
-                  style={{
-                    width: "18px",
-                    height: "18px",
-                    verticalAlign: "middle",
-                    marginRight: "8px",
-                  }}
-                />
-                Find strangers with common interests (
-                <span style={{ color: "#2196F3" }}>Enable</span>)
-              </label>
+  style={{
+    display: "block",
+    textAlign: "center",
+    fontSize: "17px",
+    color: started ? "#999" : "#333",
+    cursor: started ? "not-allowed" : "pointer",
+    lineHeight: 1.6,
+  }}
+>
+  <input
+    type="checkbox"
+    checked={matchInterests}
+    disabled={started}
+    onChange={(e) => setMatchInterests(e.target.checked)}
+    style={{
+      width: "18px",
+      height: "18px",
+      verticalAlign: "middle",
+      marginRight: "8px",
+      cursor: started ? "not-allowed" : "pointer",
+    }}
+  />
+  Find strangers with common interests (
+  <span style={{ color: started ? "#999" : "#2196F3" }}>Enable</span>)
+</label>
             </div>
           )}
 
