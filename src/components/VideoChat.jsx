@@ -395,10 +395,46 @@ export default function VideoChat() {
   };
   
 
-  const toggleCamera = () => {
+  const toggleCamera = async () => {
     if (!streamRef.current) return;
-    streamRef.current.getVideoTracks().forEach((t) => (t.enabled = !t.enabled));
-    setCameraOn((c) => !c);
+
+    if (cameraOn) {
+      // Turning OFF: actually stop the track so the camera hardware
+      // releases and the LED light turns off (not just enabled=false).
+      streamRef.current.getVideoTracks().forEach((t) => {
+        t.stop();
+        streamRef.current.removeTrack(t);
+      });
+      setCameraOn(false);
+    } else {
+      // Turning ON: grab a fresh video track and swap it into both the
+      // local stream and the live peer connection (if one exists).
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const newTrack = newStream.getVideoTracks()[0];
+
+        streamRef.current.addTrack(newTrack);
+
+        // Update local preview elements
+        if (localVideoRefDesktop.current) localVideoRefDesktop.current.srcObject = streamRef.current;
+        if (localVideoRefMobile.current) localVideoRefMobile.current.srcObject = streamRef.current;
+
+        // If a call is active, replace the track being sent to the peer
+        if (pcRef.current) {
+          const sender = pcRef.current.getSenders().find((s) => s.track && s.track.kind === "video");
+          if (sender) {
+            await sender.replaceTrack(newTrack);
+          } else {
+            pcRef.current.addTrack(newTrack, streamRef.current);
+          }
+        }
+
+        setCameraOn(true);
+      } catch (err) {
+        console.error("Failed to re-enable camera", err);
+        alert("Could not turn camera back on. Please check camera permissions.");
+      }
+    }
   };
 
   const handleSend = () => {
