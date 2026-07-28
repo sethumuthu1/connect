@@ -499,32 +499,21 @@ export default function VideoChat() {
               />
 
               {isLoading && (
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "14px",
-                    background: "#4d4d4d",
-                    color: "#ddd",
-                    fontSize: "13px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "50%",
-                      border: "3px solid rgba(255,255,255,0.25)",
-                      borderTopColor: "#ffffff",
-                      animation: "zingleSpin 0.8s linear infinite",
-                    }}
-                  />
-                </div>
-              )}
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "12px",
+                  background: "#5a5a5a",
+                }}
+              >
+                <div className="zingle-comet-spinner" />
+              </div>
+            )}
 
               {!isConnected && !isLoading && (
                 <div
@@ -775,11 +764,19 @@ export default function VideoChat() {
               </button>
             </div>
           </div>
-
-          <style>{`
+<style>{`
             @keyframes zingleSpin {
               from { transform: rotate(0deg); }
               to { transform: rotate(360deg); }
+            }
+            .zingle-comet-spinner {
+              width: 90px;
+              height: 90px;
+              border-radius: 50%;
+              background: conic-gradient(from 0deg, rgba(255,255,255,0) 0%, #ffffff 25%, rgba(255,255,255,0) 60%, rgba(255,255,255,0) 100%);
+              -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+              mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+              animation: zingleSpin 1s linear infinite;
             }
           `}</style>
         </div>
@@ -828,30 +825,23 @@ export default function VideoChat() {
             />
 
             {isLoading && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "12px",
-                  background: "#c9c9c9",
-                }}
-              >
                 <div
                   style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    border: "3px solid rgba(0,0,0,0.15)",
-                    borderTopColor: "#555",
-                    animation: "zingleSpinMobile 0.8s linear infinite",
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "14px",
+                    background: "#4d4d4d",
+                    color: "#ddd",
+                    fontSize: "13px",
                   }}
-                />
-              </div>
-            )}
+                >
+                  <div className="zingle-comet-spinner-mobile" />
+                </div>
+              )}
 
             {!isConnected && !isLoading && (
               <div
@@ -1176,6 +1166,15 @@ export default function VideoChat() {
             @keyframes zingleSpinMobile {
               from { transform: rotate(0deg); }
               to { transform: rotate(360deg); }
+            }
+           .zingle-comet-spinner-mobile {
+              width: 90px;
+              height: 90px;
+              border-radius: 50%;
+              background: conic-gradient(from 0deg, rgba(238,238,238,0) 0%, #eeeeee 25%, rgba(238,238,238,0) 60%, rgba(238,238,238,0) 100%);
+              -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+              mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+              animation: zingleSpinMobile 1s linear infinite;
             }
           `}</style>
         </div>
