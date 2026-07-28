@@ -48,6 +48,18 @@ const ICE_CONFIG = {
 // Only one of the two layouts is ever mounted at a time based on this.
 const MOBILE_BREAKPOINT = 768;
 
+// Reads the interests the user picked on the Home page (saved to
+// localStorage there) so we can send them along when joining the queue.
+function getSavedInterests() {
+  try {
+    const raw = localStorage.getItem("zingle_interests");
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
 export default function VideoChat() {
   const navigate = useNavigate();
 
@@ -64,6 +76,9 @@ export default function VideoChat() {
   const remoteStreamRef = useRef(null);
   const connectedNotifiedRef = useRef(false);
   const chatBodyRef = useRef(null);
+  // Holds whichever interest(s) the backend says this match shares,
+  // so we can mention it once the peer connection actually goes live.
+  const matchedInterestsRef = useRef([]);
 
   const [started, setStarted] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -177,15 +192,20 @@ export default function VideoChat() {
     setIsLoading(true);
 
     socketRef.current.on("connect", () => {
-      socketRef.current.emit("join");
+      // Send along whatever interests the user picked on the Home page
+      // so the backend can prefer matching people with a shared interest.
+      socketRef.current.emit("join", { interests: getSavedInterests() });
     });
 
     socketRef.current.on("waiting", () => {
       setIsLoading(true);
     });
 
-    socketRef.current.on("matched", async ({ partnerId, initiator }) => {
+    socketRef.current.on("matched", async ({ partnerId, initiator, matchedInterests }) => {
       partnerRef.current = partnerId;
+      // Remember which interest(s), if any, brought this pair together —
+      // used to build the "Connected with stranger!" chat message below.
+      matchedInterestsRef.current = Array.isArray(matchedInterests) ? matchedInterests : [];
       setIsLoading(true);
       if (!streamRef.current) await initCamera();
       createPeer(!!initiator);
@@ -218,7 +238,7 @@ export default function VideoChat() {
       setIsConnected(false);
       setIsLoading(false);
       endCall(false);
-      if (started && socketRef.current) socketRef.current.emit("join");
+      if (started && socketRef.current) socketRef.current.emit("join", { interests: getSavedInterests() });
     });
 
     socketRef.current.on("disconnect", () => {
@@ -256,7 +276,14 @@ export default function VideoChat() {
       setIsLoading(false);
       if (!connectedNotifiedRef.current) {
         connectedNotifiedRef.current = true;
-        setMessages(prev => [...prev, { from: "System", text: "Connected with stranger!", type: "system" }]);
+        // If the match was made because you both share an interest,
+        // call that out in the chat log.
+        const shared = matchedInterestsRef.current;
+        const connectedText =
+          shared && shared.length > 0
+            ? `Connected with stranger! You both are interested in ${shared.join(", ")}`
+            : "Connected with stranger!";
+        setMessages(prev => [...prev, { from: "System", text: connectedText, type: "system" }]);
       }
     };
     
@@ -290,6 +317,7 @@ export default function VideoChat() {
     remoteStreamRef.current = null;
     connectedNotifiedRef.current = false;
     partnerRef.current = null;
+    matchedInterestsRef.current = [];
     setIsConnected(false);
     setIsLoading(false);
   };
@@ -340,7 +368,7 @@ export default function VideoChat() {
     endCall(false);
     setMessages([]);
     setIsLoading(true);
-    socketRef.current?.emit("join");
+    socketRef.current?.emit("join", { interests: getSavedInterests() });
   };
 
   const toggleMute = () => {

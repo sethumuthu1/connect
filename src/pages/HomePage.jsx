@@ -28,7 +28,7 @@ import "../styles/home.css";
 // ⚠️ REPLACE THIS with your real backend URL — the SAME one your
 // /textchat and /videochat pages already connect to.
 // Example: "https://zingle-backend.onrender.com"
-const BACKEND_URL = "https://connect-backend-x7nc.onrender.com";
+const BACKEND_URL = "http://localhost:4000";
 
 const socket = io(BACKEND_URL);
 
@@ -107,6 +107,13 @@ export default function LandingPage() {
   useEffect(() => {
     localStorage.setItem("theme", darkMode ? "dark" : "light");
   }, [darkMode]);
+
+  // Persist the user's chosen interests so the VideoChat page can read
+  // them when it connects to the socket and use them for matching.
+  useEffect(() => {
+    const interestsToSave = selectedInterests.filter((i) => i !== "All");
+    localStorage.setItem("zingle_interests", JSON.stringify(interestsToSave));
+  }, [selectedInterests]);
 
   // Live online users count — pushed by the backend over the "online-count" event
   useEffect(() => {
