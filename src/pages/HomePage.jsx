@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { 
   FaVideo, 
   FaComments, 
@@ -65,6 +66,14 @@ export default function LandingPage() {
       description: "Your conversations are secure with end-to-end encryption and privacy controls."
     }
   ];
+
+  const footerLink = {
+  fontSize: "13px",
+  color: "#3b4a6b",
+  textDecoration: "none",
+  fontWeight: 500,
+  transition: "0.2s",
+};
 
   const testimonials = [
     {
@@ -298,34 +307,18 @@ export default function LandingPage() {
     {/* LEFT: Logo + Name + Tilted Tagline */}
     {/* LEFT: Logo + Name + Tilted Tagline */}
 <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-    <svg width="34" height="34" viewBox="0 0 34 34" style={{ flexShrink: 0 }}>
-      <defs>
-        <linearGradient id="zingleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#4FACFE" />
-          <stop offset="100%" stopColor="#2C6FF0" />
-        </linearGradient>
-      </defs>
-      <circle cx="17" cy="17" r="17" fill="url(#zingleGrad)" />
-      <path
-        d="M17 6a11 11 0 100 22 11 11 0 000-22zm0 4a7 7 0 015.6 11.2A6.98 6.98 0 0117 24a7 7 0 010-14z"
-        fill="#ffffff"
-      />
-      <circle cx="17" cy="13.5" r="2.3" fill="#ffffff" />
-    </svg>
-
-    <span
-      style={{
-        fontSize: "26px",
-        fontWeight: 800,
-        color: "#222",
-        letterSpacing: "0.2px",
-        whiteSpace: "nowrap",
-      }}
-    >
-      Zingle
-    </span>
-  </div>
+  <div style={{ display: "flex", alignItems: "center" }}>
+  <img
+    src="/logo2.png" // Put your logo inside the public folder
+    alt="Zingle"
+    style={{
+      height: "42px",
+      width: "auto",
+      objectFit: "contain",
+      display: "block",
+    }}
+  />
+</div>
 
   <span
     className="desktop-only"
@@ -1092,37 +1085,71 @@ export default function LandingPage() {
       {/* FOOTER */}
 <footer
   style={{
-    padding: "18px 28px",
+    padding: "20px 28px",
     background: "#ffffff",
     borderTop: "1px solid #eee",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     flexWrap: "wrap",
-    gap: "12px",
+    gap: "16px",
     fontFamily: "Arial, Helvetica, sans-serif",
   }}
 >
-  <p style={{ fontSize: "13px", color: "#666", margin: 0 }}>
-    © {new Date().getFullYear()} Zingle.com
+  <p
+    style={{
+      fontSize: "13px",
+      color: "#666",
+      margin: 0,
+    }}
+  >
+    © {new Date().getFullYear()} Zingle. All Rights Reserved.
   </p>
 
-  <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
-    <a href="#" style={{ fontSize: "13px", color: "#3b4a6b", textDecoration: "none" }}>
+  <div
+    style={{
+      display: "flex",
+      gap: "18px",
+      flexWrap: "wrap",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+    <Link to="/about" style={footerLink}>
+      About
+    </Link>
+
+    <Link to="/blog" style={footerLink}>
       Blog
-    </a>
-    <a href="#" style={{ fontSize: "13px", color: "#3b4a6b", textDecoration: "none" }}>
+    </Link>
+
+    <Link to="/contact" style={footerLink}>
+      Contact
+    </Link>
+
+    <Link to="/help" style={footerLink}>
+      Help
+    </Link>
+
+    <Link to="/rules" style={footerLink}>
       Rules
-    </a>
-    <a href="#" style={{ fontSize: "13px", color: "#3b4a6b", textDecoration: "none" }}>
+    </Link>
+
+    <Link to="/terms" style={footerLink}>
       Terms
-    </a>
-    <a href="#" style={{ fontSize: "13px", color: "#3b4a6b", textDecoration: "none" }}>
+    </Link>
+
+    <Link to="/privacy" style={footerLink}>
       Privacy
-    </a>
-    <a href="#" style={{ fontSize: "13px", color: "#3b4a6b", textDecoration: "none" }}>
+    </Link>
+
+    <Link to="/cookies" style={footerLink}>
+      Cookies
+    </Link>
+
+    <Link to="/consent" style={footerLink}>
       Manage Consent
-    </a>
+    </Link>
   </div>
 </footer>
     </div>

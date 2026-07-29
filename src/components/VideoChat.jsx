@@ -581,7 +581,7 @@ export default function VideoChat() {
                   textShadow: "0 1px 2px rgba(0,0,0,0.6)",
                 }}
               >
-                Zingle.com
+                Zingle.online
               </div>
 
               <div style={{ position: "absolute", top: "8px", right: "8px", display: "flex", gap: "6px" }}>
