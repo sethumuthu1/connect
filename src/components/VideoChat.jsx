@@ -91,6 +91,7 @@ export default function VideoChat() {
   const [showConfirmLeave, setShowConfirmLeave] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [matchInterests, setMatchInterests] = useState(false);
+  
 
   // Tracks which layout should be mounted. Only one of desktop/mobile
   // is ever rendered at a time, so there's no chance of both showing.
@@ -369,6 +370,28 @@ export default function VideoChat() {
       }
     }
   };
+
+  // Keep a ref to the latest handleStartLeave so the global Escape-key
+  // listener (registered once) always calls the current version instead
+  // of a stale closure over old `started` / `showConfirmLeave` values.
+  const handleStartLeaveRef = useRef(handleStartLeave);
+  useEffect(() => {
+    handleStartLeaveRef.current = handleStartLeave;
+  });
+
+  // Pressing Escape does exactly what clicking the Start/Stop button
+  // does: Start -> Stop (asks "Sure?") -> press Escape again -> confirms
+  // and actually stops/leaves. Works no matter which layout is mounted.
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape" || e.key === "Esc") {
+        e.preventDefault();
+        handleStartLeaveRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   // Mobile "New chat" button: if not started yet, this just starts the
   // session (same as Start). If already started, it skips the current
